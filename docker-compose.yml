@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: zakas_bot
+    restart: always
+    volumes:
+      - .:/app
+    command: python main.py
