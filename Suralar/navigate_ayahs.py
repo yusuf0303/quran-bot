@@ -171,7 +171,7 @@ def play_surah_audio(query, context):
         # Havolani yasash
         audio_url = f"https://t.me/Quran_By_Ayah/{a}"
 
-        caption = f"🎧 <b>{a-2}-sura</b> - to‘liq sura audiosi\n@QuranUzBot"
+        caption = f"🎧 <b>{a-2}-sura</b> - to‘liq sura audiosi\n@KalomUzBot"
 
         # Avvalgi xabarni yangilashga harakat qilamiz
         try:
@@ -180,7 +180,7 @@ def play_surah_audio(query, context):
                     media=audio_url,
                     caption=caption,
                     parse_mode="HTML",),
-                reply_markup=surah_ikb2()
+                reply_markup=surah_ikb2(surah_num=surah_num)
             )
         except Exception as edit_err:
             logger.warning(f"edit_message_media ishlamadi: {edit_err}")
@@ -193,7 +193,7 @@ def play_surah_audio(query, context):
                 parse_mode="HTML",
                 title=f"{a}-sura",
                 performer="Qori",
-                reply_markup=surah_ikb2()
+                reply_markup=surah_ikb2(surah_num=surah_num)
             )
 
     except Exception as e:
@@ -223,7 +223,7 @@ def play_ayah_audio(query, context):
             context.bot.send_audio(
                 chat_id=query.from_user.id,
                 audio=audio_url,
-                caption=f"🎧 {current_surah}:{current_ayah} oyati audio\n<a href='https://t.me/R_Yusuf_Bot'>@QuranUzBot</a>",
+                caption=f"🎧 {current_surah}:{current_ayah} oyati audio\n@KalomUzBot",
                 parse_mode="HTML",
                 title=f"Sura {current_surah}, Oyat {current_ayah}",
                 performer="Mishary Rashid Alafasy"
