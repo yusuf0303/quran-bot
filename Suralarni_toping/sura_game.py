@@ -12,7 +12,7 @@ from Suralarni_toping.database import init_db, register_user, update_user_stats,
 init_db()
 
 
-KANAL_ID = "@Smart_Coders_Uz"
+KANAL_ID = "@KalomUz_News"
 KANAL_LINK = "https://t.me/+4su6TsB0ioQwYmI6"
 
 logging.basicConfig(

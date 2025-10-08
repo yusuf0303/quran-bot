@@ -11,6 +11,7 @@ from Suralarni_toping.sura_game import setup_handlers
 from namoz_vaqtlari.time_namoz import setup_prayer_times_handlers
 import os
 from dotenv import load_dotenv
+from inline_quran import setup_inline_handlers
 
 load_dotenv()
 
@@ -108,7 +109,7 @@ def help_command(update, context):
 
 def handle_invalid_message(update, context):
     if not context.user_data.get('confirmed', False):
-        update.message.reply_text("Iltimos, avval foydalanish shartlarini tasdiqlang. ✅")
+        update.message.reply_text("Iltimos, avval foydalanish shartlarini tasdiqlang. ✅", reply_markup=show_terms(update, context))
     else:
         user_name = update.effective_user.first_name
         update.message.reply_text(
@@ -153,6 +154,7 @@ def main():
 
     dp.add_error_handler(error_handler)
     setup_handlers(dp)
+    setup_inline_handlers(dp)
     setup_prayer_times_handlers(dp)
     setup_mosque_handlers(dp)
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_invalid_message))

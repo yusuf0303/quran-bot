@@ -1,0 +1,135 @@
+import requests
+from telegram import (
+    InlineQueryResultArticle,
+    InlineQueryResultAudio,
+    InputTextMessageContent,
+)
+from telegram.ext import InlineQueryHandler
+from uuid import uuid4
+
+from SURAH_MAPPING import SURAH_MAP
+
+BASE_URL = "https://api.alquran.cloud/v1/"
+
+
+def inline_query_handler(update, context):
+    query = update.inline_query.query.strip().lower()
+    results = []
+
+    if not query:
+        results.append(
+            InlineQueryResultArticle(
+                id=str(uuid4()),
+                title="🔎 Qidirish uchun kalit so'zlardan foydalaning",
+                description="Sura nomi, sura nomi + oyat raqami, sajda",
+                input_message_content=InputTextMessageContent(
+                    message_text=(
+                        "⚠️ Qidirish uchun quyidagi kalit so'zlardan foydalaning:\n\n"
+                        "Sura nomi, sura nomi + oyat raqami, sajda\n"
+                        "Masalan: <i>Fotiha</i>, <i>Baqara 255</i>, <i>Sajda</i>"
+                    ),
+                    parse_mode="HTML",
+                ),
+            )
+        )
+        update.inline_query.answer(results, cache_time=1)
+        return
+
+    parts = query.split()
+    surah_name_part = parts[0]
+    ayah_num = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else None
+
+    # 🔹 Sura nomi bo‘yicha qidirish
+    matching_surahs = [
+        (name, num) for name, num in SURAH_MAP.items()
+        if surah_name_part in name.lower()
+    ]
+
+    if not matching_surahs:
+        results.append(
+            InlineQueryResultArticle(
+                id=str(uuid4()),
+                title=f"❌ {query.capitalize()} ga oid natija topilmadi",
+                description="Sura nomini to‘g‘rilab qayta urinib ko‘ring",
+                input_message_content=InputTextMessageContent(
+                    message_text="⚠️ Sura nomini to‘g‘ri kiriting. Masalan: Fotiha, Baqara 255, Sajda",
+                    parse_mode="HTML",
+                ),
+            )
+        )
+        update.inline_query.answer(results, cache_time=1)
+        return
+
+    # 🔹 Agar faqat sura nomi bo‘lsa
+    if len(parts) == 1 and query != "sajda":
+        for name, num in matching_surahs:
+            results.append(
+                InlineQueryResultArticle(
+                    id=str(uuid4()),
+                    title=name.capitalize(),
+                    description=f"{name.capitalize()} surasi",
+                    input_message_content=InputTextMessageContent(
+                        message_text=(
+                            f"📖 <b>{name.capitalize()}</b> surasi haqida ma’lumot olish uchun "
+                            f"oyat raqamini ham kiriting.\n"
+                            f"Masalan: <code>{name} 5</code>"
+                        ),
+                        parse_mode="HTML",
+                    ),
+                )
+            )
+        update.inline_query.answer(results, cache_time=1)
+        return
+
+    # 🔹 Agar oyat raqami ham bo‘lsa
+    if ayah_num:
+        surah_name, surah_num = matching_surahs[0]
+
+        resp = requests.get(f"{BASE_URL}ayah/{surah_num}:{ayah_num}/ar.alafasy")
+        if resp.status_code == 200 and resp.json().get("status") == "OK":
+            ayah = resp.json()["data"]
+            caption = (
+                f"📖 <b>{ayah['surah']['name']}</b> ({ayah['surah']['englishName']})\n"
+                f"🕌 Oyat {ayah['numberInSurah']}\n\n"
+                f"{ayah['text']}\n\n"
+                f"@KalomUzBot"
+            )
+            results.append(
+                InlineQueryResultAudio(
+                    id=str(uuid4()),
+                    audio_url=ayah["audio"],
+                    title=f"{surah_name.capitalize()} {ayah_num}-oyat (Arabcha)",
+                    performer="Mishary Rashid Alafasy",
+                    caption=caption,
+                    parse_mode="HTML",
+                )
+            )
+
+    # 🔹 Agar "sajda" so‘zi bo‘lsa
+    if query == "sajda":
+        resp = requests.get(f"{BASE_URL}sajda/quran-uthmani")
+        if resp.status_code == 200 and resp.json().get("status") == "OK":
+            for idx, item in enumerate(resp.json()["data"]["ayahs"], start=1):
+                results.append(
+                    InlineQueryResultArticle(
+                        id=str(uuid4()),
+                        title=f"{idx}. {item['surah']['englishName']} {item['numberInSurah']}-oyat (Sajda)",
+                        description=item["text"][:50] + "...",
+                        input_message_content=InputTextMessageContent(
+                            message_text=(
+                                f"📖 <b>{item['surah']['name']}</b> "
+                                f"({item['surah']['englishName']})\n"
+                                f"🕌 Sajda oyati — {item['numberInSurah']}\n\n"
+                                f"{item['text']}"
+                            ),
+                            parse_mode="HTML",
+                        ),
+                    )
+                )
+
+    update.inline_query.answer(results, cache_time=1)
+
+
+def setup_inline_handlers(dp):
+    dp.add_handler(InlineQueryHandler(inline_query_handler))
+
