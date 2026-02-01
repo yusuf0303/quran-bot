@@ -3,7 +3,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 
 from Masjidlar.get_mosques import setup_mosque_handlers
 from SchedulerAyah.scheduler import start_daily_ayah_scheduler
-from Suralar import error_handler
+from Suralar.error_handler import error_handler
 from Suralar.menu_button import main_buttons
 from Suralar.user_main_menu import user_main_menu
 from Suralarni_toping.database import register_user, get_all_user_ids

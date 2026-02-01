@@ -3,6 +3,7 @@ from telegram.ext import CallbackContext, CallbackQueryHandler, MessageHandler, 
 import random
 import requests
 import logging
+import io
 from Suralar.button_handler import button_handler
 from Suralar.menu_button import main_buttons
 from Suralarni_toping.surahs import SURAH_NAMES
@@ -264,9 +265,14 @@ def oyat_savolini_korsatish(update: Update, context: CallbackContext, oyat: dict
         try:
             audio_manzili = oyat.get('audio')
             if audio_manzili:
+                # Download audio to bypass Telegram's cache and force metadata
+                audio_content = requests.get(audio_manzili).content
+                audio_file = io.BytesIO(audio_content)
+                audio_file.name = "oyat.mp3" # Give it a generic name
+
                 sent_audio = context.bot.send_audio(
                     chat_id=chat_id,
-                    audio=audio_manzili,
+                    audio=audio_file,
                     title="Oyat",
                     performer="KalomUz",
                     parse_mode="HTML"
