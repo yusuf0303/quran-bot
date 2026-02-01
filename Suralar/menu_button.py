@@ -12,6 +12,7 @@ def main_buttons():
     keyboard = [
         [KeyboardButton("Eng yaqin Masjid 📍", request_location=True)],
         ["Suralar 🔍", "Oyatlarni toping 🔍"],
-        ["Masjidlar 🕌", "Namoz vaqtlari 🧎‍♂️"]
+        ["Masjidlar 🕌", "Namoz vaqtlari 🧎‍♂️"],
+        ["Quiz yaratish 📝"]
     ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)

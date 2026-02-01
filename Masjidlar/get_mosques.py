@@ -4,14 +4,9 @@ from telegram import Update, KeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import (CallbackContext, CommandHandler, MessageHandler,
                           Filters, ConversationHandler)
 
-from Suralar.menu_button import logger
+from Suralar.menu_button import main_buttons, logger
 from Masjidlar.transliterate import to_latin
 
-MAIN_MENU = [
-    [KeyboardButton("Eng yaqin Masjid 📍", request_location=True)],
-    ["Suralar 🔍", "Oyatlarni toping 🔍"],
-    ["Masjidlar 🕌", "Namoz vaqtlari 🧎‍♂️"]
-]
 
 # ==== States ====
 PROVINCE, DISTRICT, MOSQUE = range(3)
@@ -271,7 +266,7 @@ def back_to_districts(update: Update, context: CallbackContext):
 def go_home(update: Update, context: CallbackContext) -> int:
     update.message.reply_text(
         "🏠 Asosiy menyuga qaytdingiz! Quyidagi menyulardan birini tanlang:",
-        reply_markup=ReplyKeyboardMarkup(MAIN_MENU, resize_keyboard=True)
+        reply_markup=main_buttons()
     )
     return ConversationHandler.END
 

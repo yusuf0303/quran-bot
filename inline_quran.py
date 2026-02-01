@@ -3,6 +3,8 @@ from telegram import (
     InlineQueryResultArticle,
     InlineQueryResultAudio,
     InputTextMessageContent,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton
 )
 from telegram.ext import InlineQueryHandler
 import uuid
@@ -35,6 +37,44 @@ def inline_query_handler(update, context):
         )
         update.inline_query.answer(results, cache_time=1)
         return
+
+    if query.startswith("quiz_"):
+        parts = query.split("_")
+        if len(parts) >= 2:
+            quiz_id = query.replace("quiz_", "", 1)
+            # Default display if it's a new ID or settings
+            display_count = parts[2] if len(parts) >= 3 else "?"
+            display_juz = parts[1].replace("-", ", ") if len(parts) >= 2 else "?"
+            display_time = parts[3] if len(parts) >= 4 else "?"
+            
+            bot_username = context.bot.username
+            group_deep_link = f"https://t.me/{bot_username}?startgroup=quiz_{quiz_id}"
+            private_deep_link = f"https://t.me/{bot_username}?start=quiz_{quiz_id}"
+            
+            results.append(
+                InlineQueryResultArticle(
+                    id=uuid4().hex,
+                    title=f"🚀 Savol-Javob (Quiz): {display_count} ta savol",
+                    description=f"Juzlar: {display_juz} | Vaqt: {display_time} sek",
+                    input_message_content=InputTextMessageContent(
+                        message_text=(
+                            f"📖 **Yangi Savol-Javob (Quiz)**\n\n"
+                            f"📖 **Juzlar:** {display_juz}\n"
+                            f"❓ **Savollar soni:** {display_count} ta\n"
+                            f"⏳ **Har bir savolga:** {display_time} sekund\n\n"
+                            f"Testni boshlash uchun pastdagi tugmani bosing 👇"
+                        ),
+                        parse_mode="Markdown"
+                    ),
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("🏁 Shaxsiyda boshlash", url=private_deep_link)],
+                        [InlineKeyboardButton("👥 Guruhda boshlash", url=group_deep_link)],
+                        [InlineKeyboardButton("📤 Ulashish", switch_inline_query=f"quiz_{quiz_id}")]
+                    ])
+                )
+            )
+            update.inline_query.answer(results, cache_time=1)
+            return
 
     parts = query.split()
     surah_name_part = parts[0]

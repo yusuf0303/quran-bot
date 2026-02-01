@@ -648,5 +648,3 @@ def setup_handlers(dispatcher):
     dispatcher.add_handler(CallbackQueryHandler(kanalni_tekshirish, pattern='^kanalni_tekshirish$'))
     dispatcher.add_handler(CallbackQueryHandler(kanalni_tekshirish_keyingi, pattern='^kanalni_tekshirish_keyingi$'))
     dispatcher.add_handler(CallbackQueryHandler(top_10ni_korsatish, pattern='^top_10ni_korsatish$'))
-    dispatcher.add_handler(CallbackQueryHandler(mening_reytingim, pattern='^mening_reytingim$'))
-    dispatcher.add_handler(CallbackQueryHandler(button_handler))

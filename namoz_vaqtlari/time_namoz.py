@@ -8,16 +8,11 @@ from telegram.ext import (
 )
 from datetime import datetime
 
-from Suralar.menu_button import logger
+from Suralar.menu_button import main_buttons, logger
 from namoz_vaqtlari.get_regeions import DISTRICTS, REGIONS, API_REGION_NAMES
 
 REGION, DISTRICT, PRAYER_TIME = range(3)
 
-MAIN_MENU = [
-    [KeyboardButton("Eng yaqin Masjid 📍", request_location=True)],
-    ["Suralar 🔍", "Oyatlarni toping 🔍"],
-    ["Masjidlar 🕌", "Namoz vaqtlari 🧎‍♂️"]
-]
 
 PRAYER_TIMES = [
     ["Bomdod 🌅", "Peshin 🕑", "Asr 🌇"],
@@ -55,7 +50,7 @@ def start(update: Update, context: CallbackContext) -> int:
     update.message.reply_text(
         "🕌 Assalomu alaykum! KalomUz botiga xush kelibsiz!\n\n"
         "Quyidagi menyulardan birini tanlang:",
-        reply_markup=ReplyKeyboardMarkup(MAIN_MENU, resize_keyboard=True)
+        reply_markup=main_buttons()
     )
     return ConversationHandler.END
 
@@ -298,7 +293,7 @@ def back_to_districts(update: Update, context: CallbackContext) -> int:
 def go_home(update: Update, context: CallbackContext) -> int:
     update.message.reply_text(
         "🏠 Asosiy menyuga qaytdingiz! Quyidagi menyulardan birini tanlang:",
-        reply_markup=ReplyKeyboardMarkup(MAIN_MENU, resize_keyboard=True)
+        reply_markup=main_buttons()
     )
     return ConversationHandler.END
 
