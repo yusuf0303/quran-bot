@@ -18,6 +18,7 @@ def init_db():
         username TEXT,
         first_name TEXT,
         last_name TEXT,
+        confirmed INTEGER DEFAULT 0,
         registered_at TEXT DEFAULT CURRENT_TIMESTAMP
     )
     """)
@@ -239,3 +240,20 @@ def get_user_quizzes(user_id):
     results = cursor.fetchall()
     conn.close()
     return results
+
+def is_user_confirmed(user_id):
+    """Check if user has confirmed terms"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT confirmed FROM users WHERE user_id = ?", (user_id,))
+    result = cursor.fetchone()
+    conn.close()
+    return result[0] == 1 if result else False
+
+def set_user_confirmed(user_id, confirmed=True):
+    """Set user confirmation status"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET confirmed = ? WHERE user_id = ?", (1 if confirmed else 0, user_id))
+    conn.commit()
+    conn.close()

@@ -24,7 +24,6 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 def start_bot(update, context):
-    context.user_data['confirmed'] = False
     user = update.effective_user
     register_user(user)
     
@@ -93,8 +92,9 @@ def start_bot(update, context):
     
     # Check subscription and terms immediately
     from Ramadan.contest_logic import check_subscription
+    from Suralarni_toping.database import is_user_confirmed
     is_subscribed = check_subscription(context.bot, user_id)
-    confirmed = context.user_data.get('confirmed', False)
+    confirmed = is_user_confirmed(user_id)
     
     if not confirmed or not is_subscribed:
         show_access_denied(update, context, subscription_needed=not is_subscribed)
@@ -116,9 +116,13 @@ def terms_confirmation(update, context):
     query = update.callback_query
     query.answer()
     if query.data == "confirm_terms":
-        context.user_data['confirmed'] = True
-        # Also check subscription again to be sure
+        from Suralarni_toping.database import set_user_confirmed
         from Ramadan.contest_logic import check_subscription
+        
+        # Save confirmation to database (persistent)
+        set_user_confirmed(update.effective_user.id, True)
+        
+        # Also check subscription again to be sure
         if not check_subscription(context.bot, update.effective_user.id):
             return show_access_denied(update, context, subscription_needed=True)
             

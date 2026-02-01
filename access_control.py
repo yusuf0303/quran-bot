@@ -1,14 +1,15 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, ParseMode
 from telegram.ext import CallbackContext
 from Ramadan.contest_logic import check_subscription
+from Suralarni_toping.database import is_user_confirmed
 
 def ensure_access(update: Update, context: CallbackContext) -> bool:
     """Checks if user has confirmed terms and is subscribed to channels."""
     user_id = update.effective_user.id if update.effective_user else None
     if not user_id: return True # Non-user events
     
-    # 1. Check Terms
-    confirmed = context.user_data.get('confirmed', False)
+    # 1. Check Terms from database (persistent across bot restarts)
+    confirmed = is_user_confirmed(user_id)
     
     # 2. Check Subscription
     subscribed = check_subscription(context.bot, user_id)
