@@ -24,7 +24,7 @@ from telegram.ext import (
 )
 from Suralarni_toping.surahs import SURAH_NAMES
 from Suralar.menu_button import main_buttons, logger
-from Suralarni_toping.database import save_shared_quiz, get_shared_quiz, add_user_quiz, get_user_quizzes
+from Suralarni_toping.database import save_shared_quiz, get_shared_quiz, add_user_quiz, get_user_quizzes, get_user_quiz_stats, update_user_quiz_stats
 
 # States
 SELECT_JUZ, SELECT_COUNT, SELECT_TIME = range(3)
@@ -350,6 +350,13 @@ def show_quiz_results(update: Update, context: CallbackContext):
     )
     context.bot.send_message(chat_id=chat_id, text=result_text, reply_markup=main_buttons(), parse_mode=ParseMode.MARKDOWN)
     
+    # Store stats in DB
+    if user_id:
+        try:
+            update_user_quiz_stats(user_id, quiz.score, len(quiz.questions))
+        except Exception as e:
+            logger.error(f"Error updating quiz stats: {e}")
+
     # Final cleanup
     if user_data: user_data['quiz_creator'] = None
 
@@ -414,6 +421,31 @@ def show_my_quizzes(update: Update, context: CallbackContext):
     query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode=ParseMode.MARKDOWN)
     return SELECT_JUZ
 
+def show_quiz_stats(update: Update, context: CallbackContext):
+    query = update.callback_query
+    if query: query.answer()
+    
+    user_id = update.effective_user.id
+    stats = get_user_quiz_stats(user_id)
+    
+    accuracy = (stats['correct_answers'] / stats['total_questions'] * 100) if stats['total_questions'] > 0 else 0
+    
+    text = (
+        "📊 **Sizning Quiz statistikangiz:**\n\n"
+        f"✅ **To'g'ri javoblar:** {stats['correct_answers']}\n"
+        f"❓ **Jami savollar:** {stats['total_questions']}\n"
+        f"🏁 **Jami quizlar:** {stats['total_quizzes']}\n"
+        f"📈 **Aniqlik:** {accuracy:.1f}%\n\n"
+        "Bilimingiz ziyoda bo'lsin! 🎊"
+    )
+    
+    keyboard = [[InlineKeyboardButton("🏠 Bosh menyu", callback_data="quiz_cancel")]]
+    
+    if query:
+        query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode=ParseMode.MARKDOWN)
+    else:
+        context.bot.send_message(chat_id=update.effective_chat.id, text=text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode=ParseMode.MARKDOWN)
+
 def quiz_cancel(update: Update, context: CallbackContext):
     if update.callback_query: update.callback_query.answer()
     context.bot.send_message(chat_id=update.effective_chat.id, text="🏠 Asosiy menyuga qaytdingiz! Quyidagi menyulardan birini tanlang:", reply_markup=main_buttons())
@@ -438,4 +470,8 @@ def setup_quiz_handlers(dp):
         allow_reentry=True
     )
     dp.add_handler(conv)
+    
+    # Global callbacks for buttons that remain after ConversationHandler ends
+    dp.add_handler(CallbackQueryHandler(quiz_cancel, pattern="^quiz_cancel$"))
+    dp.add_handler(CallbackQueryHandler(show_quiz_stats, pattern="^quiz_stats$"))
     dp.add_handler(CallbackQueryHandler(launch_quiz, pattern="^quiz_launch_now$"))

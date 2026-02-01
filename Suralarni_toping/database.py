@@ -115,6 +115,42 @@ def get_top_10_users():
     conn.close()
     return results
 
+def get_user_quiz_stats(user_id):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT correct_answers, total_questions, total_quizzes FROM quiz_stats WHERE user_id = ?", (user_id,))
+    result = cursor.fetchone()
+    conn.close()
+    if result:
+        return {
+            'correct_answers': result[0],
+            'total_questions': result[1],
+            'total_quizzes': result[2]
+        }
+    return {'correct_answers': 0, 'total_questions': 0, 'total_quizzes': 0}
+
+def update_user_quiz_stats(user_id, score, questions_count):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM quiz_stats WHERE user_id = ?", (user_id,))
+    exists = cursor.fetchone()
+    if exists:
+        cursor.execute("""
+            UPDATE quiz_stats 
+            SET correct_answers = correct_answers + ?, 
+                total_questions = total_questions + ?, 
+                total_quizzes = total_quizzes + 1,
+                last_played = ?
+            WHERE user_id = ?
+        """, (score, questions_count, datetime.now().isoformat(), user_id))
+    else:
+        cursor.execute("""
+            INSERT INTO quiz_stats (user_id, correct_answers, total_questions, total_quizzes, last_played)
+            VALUES (?, ?, ?, 1, ?)
+        """, (user_id, score, questions_count, datetime.now().isoformat()))
+    conn.commit()
+    conn.close()
+
 def get_user_rank(user_id):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
