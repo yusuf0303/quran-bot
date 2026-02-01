@@ -76,6 +76,36 @@ def inline_query_handler(update, context):
             update.inline_query.answer(results, cache_time=1)
             return
 
+    if query.startswith("ramadan_r"):
+        user_id = query.replace("ramadan_r", "")
+        bot_username = context.bot.username
+        ref_link = f"https://t.me/{bot_username}?start=r{user_id}"
+        
+        invitation_text = (
+            f"Assalomu alaykum! 🌙\n\n"
+            f"Sizni KalomUz botidagi <b>Ramazon konkursiga</b> taklif qilaman! 🏆\n\n"
+            f"Konkursda qatnashib, qimmatbaho kitoblar to'plamini yutib olishingiz mumkin. 🎁\n\n"
+            f"Ro'yxatdan o'tish uchun ushbu havolani bosing: {ref_link}"
+        )
+        
+        results.append(
+            InlineQueryResultArticle(
+                id=uuid4().hex,
+                title="🌙 Ramazon Konkursiga taklifnoma",
+                description="Do'stlaringizni taklif qiling va ballar to'plang!",
+                thumb_url="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR6f9Y_NqV5F_0_GZQ_XZy_8H_J_0_0_GZQ_XZy_8H_J_0&s",
+                input_message_content=InputTextMessageContent(
+                    message_text=invitation_text,
+                    parse_mode="HTML"
+                ),
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🏆 Konkursda qatnashish", url=ref_link)]
+                ])
+            )
+        )
+        update.inline_query.answer(results, cache_time=1)
+        return
+
     parts = query.split()
     surah_name_part = parts[0]
     ayah_num = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else None

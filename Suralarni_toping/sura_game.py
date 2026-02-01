@@ -9,6 +9,7 @@ from Suralar.menu_button import main_buttons
 from Suralarni_toping.surahs import SURAH_NAMES
 from Suralarni_toping.database import init_db, register_user, update_user_stats, get_user_stats, get_top_10_users, \
     get_user_position
+from access_control import ensure_access
 
 init_db()
 
@@ -30,17 +31,14 @@ class OyatOyini:
         self.last_audio_message_id = None # Added to store the audio message ID
 
 
+# Legacy function replaced by access_control.ensure_access
 def kanalga_azo_tekshirish(user_id: int, context: CallbackContext) -> bool:
-    try:
-        azo = context.bot.get_chat_member(chat_id=KANAL_ID, user_id=user_id)
-        return azo.status in ['member', 'administrator', 'creator', 'owner', 'admin']
-    except Exception as e:
-        logger.error(f"Kanal a'zoligini tekshirishda xato: {e}")
-        return False
-
-
+    from Ramadan.contest_logic import check_subscription
+    return check_subscription(context.bot, user_id)
 def oyat_topish(update: Update, context: CallbackContext):
-
+    if not ensure_access(update, context):
+        return
+        
     user = update.message.from_user if update.message else update.callback_query.from_user
     register_user(user)
     logger.info(f"Foydalanuvchi {user.first_name} o'yinni boshladi")
@@ -83,30 +81,9 @@ def oyat_topish(update: Update, context: CallbackContext):
 def kanal_tekshirib_oynash(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
-    user_id = query.from_user.id
-
-    if kanalga_azo_tekshirish(user_id, context):
+    
+    if ensure_access(update, context):
         asl_oynani_boshlash(update, context)
-    else:
-        tugmalar = [
-            [InlineKeyboardButton("✅ A'zo bo'ldim", callback_data="kanalni_tekshirish")],
-            [InlineKeyboardButton("📢 Kanalga kirish", url=KANAL_LINK)]
-        ]
-
-        try:
-            query.edit_message_text(
-                text=f"⚠️ O'yinni davom ettirish uchun quyidagi kanalga a'zo bo'lishingiz kerak:\n\n"
-                     f"{KANAL_LINK}\n\n"
-                     "Kanalga a'zo bo'lganingizdan so'ng «✅ A'zo bo'ldim» tugmasini bosing.",
-                reply_markup=InlineKeyboardMarkup(tugmalar))
-        except Exception as e:
-            context.bot.send_message(
-                chat_id=user_id,
-                text=f"⚠️ O'yinni davom ettirish uchun quyidagi kanalga a'zo bo'lishingiz kerak:\n\n"
-                     f"{KANAL_LINK}\n\n"
-                     "Kanalga a'zo bo'lganingizdan so'ng «✅ A'zo bo'ldim» tugmasini bosing.",
-                reply_markup=InlineKeyboardMarkup(tugmalar)
-            )
 
 
 def asl_oynani_boshlash(update: Update, context: CallbackContext):

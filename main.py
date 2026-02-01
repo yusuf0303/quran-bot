@@ -15,6 +15,10 @@ from inline_quran import setup_inline_handlers
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler, PollAnswerHandler
 from Quiz.quiz_creator import setup_quiz_handlers, handle_poll_answer
 from Suralar.button_handler import button_handler
+from Ramadan.handlers import konkurs_command, leaderboard_callback, set_region_callback, save_region_callback, insta_verify_callback, ramadan_back_callback, juma_test_command
+from Ramadan.database import add_referral
+from Ramadan.contest_logic import get_leaderboard_text
+from access_control import ensure_access, show_access_denied
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -26,11 +30,27 @@ def start_bot(update, context):
     
     commands = [
         BotCommand(command='start', description="Botni ishga tushirish"),
+        BotCommand(command='konkurs', description="Ramazon konkursi (Dashboard)"),
+        BotCommand(command='reyting', description="Umumiy peshqadamlar ro'yxati"),
+        BotCommand(command='hudud', description="Saharlik/Iftor vaqtini belgilash"),
         BotCommand(command='help', description="Yordam olish")
     ]
     context.bot.set_my_commands(commands)
+    
+    # Check for referral bonus (if user is new and joined via r123)
 
-    if context.args and context.args[0].startswith("quiz_"):
+    # Check for referral deep link
+    args = context.args
+    user_id = update.effective_user.id
+    if args and args[0].startswith('r'):
+        try:
+            referrer_id = int(args[0][1:])
+            if referrer_id != user_id:
+                add_referral(referrer_id, user_id)
+        except Exception:
+            pass
+
+    if args and args[0].startswith("quiz_"):
         try:
             from Quiz.quiz_creator import QuizCreator, prepare_quiz_questions, send_quiz_question
             from Suralarni_toping.database import get_shared_quiz
@@ -48,6 +68,7 @@ def start_bot(update, context):
                 quiz.time_limit = db_quiz['time_limit']
                 quiz.questions = db_quiz['questions']
                 context.user_data['quiz_creator'] = quiz
+                quiz.quiz_id = raw_id
                 send_quiz_question(update, context)
                 return
             else:
@@ -64,42 +85,44 @@ def start_bot(update, context):
                     context.user_data['quiz_creator'] = quiz
                     
                     if prepare_quiz_questions(quiz):
+                        quiz.quiz_id = raw_id
                         send_quiz_question(update, context)
                         return
-        except Exception as e:
-            logger.error(f"Quiz deep link error: {e}")
+        except Exception:
+            pass
+    
+    # Check subscription and terms immediately
+    from Ramadan.contest_logic import check_subscription
+    is_subscribed = check_subscription(context.bot, user_id)
+    confirmed = context.user_data.get('confirmed', False)
+    
+    if not confirmed or not is_subscribed:
+        show_access_denied(update, context, subscription_needed=not is_subscribed)
+        return
 
-    share_button = InlineKeyboardButton(
-        "Do'stlarga ulashish ⤴️",
-        switch_inline_query="👈 Ushbu botga kiring va Qur'onni yod oling!"
-    )
-    keyboard = InlineKeyboardMarkup([[share_button]])
-
+    # If already confirmed and subscribed, show main menu or handle deep link
+    # (Deep link logic above already handles return if quiz found)
     update.message.reply_text(
-        f"Assalomu alaykum, {update.message.from_user.full_name}!\n"
-        "Online Qur'on botiga xush kelibsiz 🤗\n"
-        "Botni yaqinlaringizga ham ulashing ☪️",
-        reply_markup=keyboard
+        f"Assalomu alaykum, {update.effective_user.full_name}! Botga qaytganingizdan xursandmiz. 😊",
+        reply_markup=main_buttons()
     )
-    show_terms(update, context)
+
+# Logic moved to access_control.py
 
 def show_terms(update, context):
-    keyboard = [
-        [InlineKeyboardButton(text="📋 Foydalanish shartlari", url="https://t.me/KalomUz_News/4")],
-        [InlineKeyboardButton(text="Tasdiqlayman ✅", callback_data="confirm_terms")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text(
-        "Botdan to'liq foydalanish uchun foydalanish shartlari bilan tanishib chiqing va tasdiqlang:",
-        reply_markup=reply_markup
-    )
+    show_access_denied(update, context)
 
 def terms_confirmation(update, context):
     query = update.callback_query
     query.answer()
     if query.data == "confirm_terms":
         context.user_data['confirmed'] = True
-        query.edit_message_text("Foydalanish shartlari qabul qilindi! Asosiy menyuga o'tishingiz mumkin.")
+        # Also check subscription again to be sure
+        from Ramadan.contest_logic import check_subscription
+        if not check_subscription(context.bot, update.effective_user.id):
+            return show_access_denied(update, context, subscription_needed=True)
+            
+        query.edit_message_text("Tabriklaymiz! Ro'yxatdan o'tish muvaffaqiyatli yakunlandi. ✅")
         context.bot.send_message(
             chat_id=query.message.chat_id,
             text="Quyidagi bo'limlardan birini tanlang 👇",
@@ -124,31 +147,55 @@ def help_command(update, context):
     update.message.reply_text(help_text, parse_mode='Markdown')
 
 def handle_invalid_message(update, context):
-    if not context.user_data.get('confirmed', False):
-        update.message.reply_text("Iltimos, avval foydalanish shartlarini tasdiqlang. ✅", reply_markup=show_terms(update, context))
-    else:
-        update.message.reply_text(
-            f"Hurmatli {update.effective_user.first_name}, botdan foydalanish uchun quyidagi tugmalardan foydalaning.👇",
-            reply_markup=main_buttons()
-        )
+    if not ensure_access(update, context):
+        return
+    
+    update.message.reply_text(
+        f"Hurmatli {update.effective_user.first_name}, botdan foydalanish uchun quyidagi tugmalardan foydalaning.👇",
+        reply_markup=main_buttons()
+    )
 
 def main():
     bot_token = os.getenv("BOT_TOKEN")
     start_daily_ayah_scheduler(bot_token)
+    
     updater = Updater(bot_token, use_context=True, request_kwargs={'connect_timeout': 20, 'read_timeout': 20})
+    from Ramadan.scheduler import start_ramadan_scheduler
+    start_ramadan_scheduler(updater.bot)
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("start", start_bot))
     dp.add_handler(CommandHandler("help", help_command))
+    
+    # Wrapped CommandHandlers
+    def wrapped_handler(handler_func):
+        def wrapper(update, context):
+            if ensure_access(update, context):
+                return handler_func(update, context)
+        return wrapper
+
+    dp.add_handler(CommandHandler("konkurs", wrapped_handler(konkurs_command)))
+    dp.add_handler(CommandHandler("reyting", wrapped_handler(lambda u, c: u.message.reply_text(get_leaderboard_text(), parse_mode='Markdown'))))
+    dp.add_handler(CommandHandler("hudud", wrapped_handler(set_region_callback)))
+    dp.add_handler(CommandHandler("juma_test", wrapped_handler(juma_test_command)))
+    dp.add_handler(MessageHandler(Filters.regex("^Konkurs 🏆$"), wrapped_handler(konkurs_command)))
+    
+    # Ramadan Callbacks (Wrapped)
+    dp.add_handler(CallbackQueryHandler(wrapped_handler(leaderboard_callback), pattern="^ramadan_leaderboard$"))
+    dp.add_handler(CallbackQueryHandler(wrapped_handler(set_region_callback), pattern="^ramadan_set_region$"))
+    dp.add_handler(CallbackQueryHandler(wrapped_handler(save_region_callback), pattern="^ramadan_save_reg_"))
+    dp.add_handler(CallbackQueryHandler(wrapped_handler(insta_verify_callback), pattern="^ramadan_insta_verify$"))
+    dp.add_handler(CallbackQueryHandler(wrapped_handler(ramadan_back_callback), pattern="^ramadan_back_to_status$"))
+    
     dp.add_handler(CallbackQueryHandler(terms_confirmation, pattern="^confirm_terms$"))
-    dp.add_handler(MessageHandler(Filters.regex("^Suralar 🔍$"), user_main_menu))
+    dp.add_handler(MessageHandler(Filters.regex("^Suralar 🔍$"), wrapped_handler(user_main_menu)))
     dp.add_error_handler(error_handler)
     setup_quiz_handlers(dp)
     dp.add_handler(PollAnswerHandler(handle_poll_answer))
     setup_handlers(dp)
     setup_inline_handlers(dp)
-    setup_prayer_times_handlers(dp)
+    setup_prayer_times_handlers(dp) # These have internal checks or can be wrapped if they expose handlers
     setup_mosque_handlers(dp)
-    dp.add_handler(CallbackQueryHandler(button_handler))  # Catch-all for Suralar section
+    dp.add_handler(CallbackQueryHandler(wrapped_handler(button_handler)))  # Catch-all for Suralar section
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_invalid_message))
     updater.start_polling()
     updater.idle()

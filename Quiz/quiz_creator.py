@@ -24,6 +24,7 @@ from telegram.ext import (
 )
 from Suralarni_toping.surahs import SURAH_NAMES
 from Suralar.menu_button import main_buttons, logger
+from access_control import ensure_access
 from Suralarni_toping.database import save_shared_quiz, get_shared_quiz, add_user_quiz, get_user_quizzes, get_user_quiz_stats, update_user_quiz_stats
 
 # States
@@ -49,10 +50,18 @@ class QuizCreator:
         self.questions = []
         self.current_question_idx = 0
         self.score = 0
-        self.start_timestamp = 0
         self.user_full_name = ""
+        self.total_duration = 0.0
+        self.current_q_start = 0.0
+        self.active_job = None
+        self.chat_id = None
+        self.chat_type = None
+        self.quiz_id = None
 
 def quiz_yarat_start(update: Update, context: CallbackContext):
+    if not ensure_access(update, context):
+        return
+        
     context.user_data['quiz_creator'] = QuizCreator()
     context.user_data['quiz_creator'].user_full_name = update.effective_user.full_name
     return show_juz_selection(update, context)
@@ -66,6 +75,20 @@ def show_juz_selection(update: Update, context: CallbackContext):
             display_text = f"{j} ✅" if j in quiz.selected_juz else str(j)
             row.append(InlineKeyboardButton(display_text, callback_data=f"quiz_juz_sel_{j}"))
         keyboard.append(row)
+    
+    # Selection utilities labels
+    all_selected = len(quiz.selected_juz) == 30
+    all_label = "Barcha juzlar ✅" if all_selected else "Barcha juzlar 📚"
+    
+    # Random label: If only one is selected, we can show it on the random button
+    random_label = "Tasodifiy juz 🎲"
+    if len(quiz.selected_juz) == 1:
+        random_label = f"Tasodifiy ({quiz.selected_juz[0]}-juz) ✅"
+        
+    keyboard.append([
+        InlineKeyboardButton(all_label, callback_data="quiz_juz_all"),
+        InlineKeyboardButton(random_label, callback_data="quiz_juz_random")
+    ])
     
     keyboard.append([InlineKeyboardButton("Tayyor ✅", callback_data="quiz_juz_ready")])
     keyboard.append([InlineKeyboardButton("Mening quizlarim 📚", callback_data="quiz_history")])
@@ -89,6 +112,20 @@ def handle_juz_selection(update: Update, context: CallbackContext):
         if juz_num in quiz.selected_juz: quiz.selected_juz.remove(juz_num)
         else: quiz.selected_juz.append(juz_num)
         query.answer()
+        return show_juz_selection(update, context)
+    elif data == "quiz_juz_all":
+        if len(quiz.selected_juz) == 30:
+            quiz.selected_juz = []
+            query.answer("Tanlov bekor qilindi ❌")
+        else:
+            quiz.selected_juz = list(range(1, 31))
+            query.answer("Barcha juzlar tanlandi ✅")
+        return show_juz_selection(update, context)
+    elif data == "quiz_juz_random":
+        new_juz = random.randint(1, 30)
+        # Avoid same juz if possible, or just pick a new one
+        quiz.selected_juz = [new_juz]
+        query.answer(f"{new_juz}-juz tanlandi 🎲")
         return show_juz_selection(update, context)
     elif data == "quiz_history":
         query.answer()
@@ -139,6 +176,7 @@ def handle_time_selection(update: Update, context: CallbackContext):
     if not quiz: return quiz_cancel(update, context)
     if query.data.startswith("quiz_time_val_"):
         quiz.time_limit = int(query.data.split("_")[-1])
+        quiz.quiz_id = None # Will be set in finish_creation
         query.answer("Quiz tayyorlanmoqda...")
         return finish_creation(update, context)
     elif query.data == "quiz_back_to_count":
@@ -180,6 +218,7 @@ def finish_creation(update: Update, context: CallbackContext):
         [InlineKeyboardButton("🏠 Bosh menyu", callback_data="quiz_cancel")]
     ]
     update.callback_query.edit_message_text(f"✅ **Quiz tayyor!**\n\n📖 **Juzlar:** {juz_str}\n❓ **Savollar:** {quiz.question_count}\n⏳ **Vaqt:** {quiz.time_limit} sek", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode=ParseMode.MARKDOWN)
+    quiz.quiz_id = quiz_id
     return ConversationHandler.END
 
 def prepare_quiz_questions(quiz):
@@ -221,17 +260,20 @@ def prepare_quiz_questions(quiz):
 def launch_quiz(update: Update, context: CallbackContext):
     quiz = context.user_data.get('quiz_creator')
     if not quiz or not quiz.questions: return
-    quiz.start_timestamp = time.time()
+    quiz.total_duration = 0.0
     send_quiz_question(update, context)
 
 def send_quiz_question(update: Update, context: CallbackContext):
     # Robustly get chat_id and user_id
+    chat_type = None
     if hasattr(update, 'effective_chat') and update.effective_chat:
         chat_id = update.effective_chat.id
         user_id = update.effective_user.id if update.effective_user else None
+        chat_type = update.effective_chat.type
     else:
         chat_id = context.job.context.get('chat_id')
         user_id = context.job.context.get('user_id')
+        chat_type = context.job.context.get('chat_type')
 
     # Get user_data safely
     if context.user_data is not None:
@@ -244,13 +286,31 @@ def send_quiz_question(update: Update, context: CallbackContext):
     quiz = user_data.get('quiz_creator') if user_data else None
 
     if not quiz: return
+    
+    # Store chat info for PollAnswer handling
+    if chat_id: quiz.chat_id = chat_id
+    if chat_type: quiz.chat_type = chat_type
+
     if quiz.current_question_idx >= len(quiz.questions):
         show_quiz_results(update, context)
         return
 
+    # Cancel any previous auto-next job if progression was manual
+    if quiz.active_job:
+        quiz.active_job.schedule_removal()
+        quiz.active_job = None
+
+    quiz.current_q_start = time.time()
+
     q = quiz.questions[quiz.current_question_idx]
     current_num = quiz.current_question_idx + 1
     
+    # Truncation helper to prevent caption length errors
+    def safe_caption(text, limit=1000):
+        if len(text) > limit:
+            return text[:limit-3] + "..."
+        return text
+
     # Media
     try:
         audio_content = requests.get(q['audio']).content
@@ -260,16 +320,16 @@ def send_quiz_question(update: Update, context: CallbackContext):
         context.bot.send_audio(
             chat_id=chat_id, 
             audio=audio_file, 
-            title="Sura nomi yashirin",
+            title="KalomUz News", # Fixed title per user preference
             performer="KalomUzBot", 
-            caption=f"📖 **Oyat matni:**\n\n{q['arabic']}", 
-            parse_mode=ParseMode.MARKDOWN
+            caption=f"📖 <b>Oyat matni:</b>\n\n<code>{safe_caption(q['arabic'])}</code>", 
+            parse_mode=ParseMode.HTML
         )
         context.bot.send_photo(
             chat_id=chat_id, 
             photo=q['image'], 
-            caption=f"📝 **Oyat tarjimasi:**\n\n{q['translation']}", 
-            parse_mode=ParseMode.MARKDOWN
+            caption=f"📝 <b>Oyat tarjimasi:</b>\n\n<code>{safe_caption(q['translation'])}</code>", 
+            parse_mode=ParseMode.HTML
         )
     except Exception as e:
         logger.warning(f"Media send error: {e}")
@@ -289,10 +349,10 @@ def send_quiz_question(update: Update, context: CallbackContext):
     quiz.current_question_idx += 1
     
     # Auto-next job (Timer-based progression)
-    context.job_queue.run_once(
+    quiz.active_job = context.job_queue.run_once(
         job_auto_next, 
         when=quiz.time_limit + 1, 
-        context={'chat_id': chat_id, 'user_id': user_id, 'idx': quiz.current_question_idx}
+        context={'chat_id': chat_id, 'user_id': user_id, 'idx': quiz.current_question_idx, 'chat_type': quiz.chat_type}
     )
 
 def handle_poll_answer(update: Update, context: CallbackContext):
@@ -301,8 +361,40 @@ def handle_poll_answer(update: Update, context: CallbackContext):
     if poll_id in ACTIVE_POLLS:
         data = ACTIVE_POLLS[poll_id]
         quiz = data['quiz']
+        
+        # Track time for this question
+        elapsed = time.time() - quiz.current_q_start
+        quiz.total_duration += min(elapsed, quiz.time_limit)
+        
         if answer.option_ids and answer.option_ids[0] == data['correct_index']:
             quiz.score += 1
+            
+        # Progression Logic: Private chat -> Next question immediately
+        if quiz.chat_type == "private":
+            if quiz.active_job:
+                quiz.active_job.schedule_removal()
+                quiz.active_job = None
+            
+            # Send next question
+            class MockUpdate:
+                def __init__(self, cid, uid):
+                    self.effective_chat = type('obj', (object,), {'id': cid, 'type': 'private'})()
+                    self.effective_user = type('obj', (object,), {'id': uid})()
+            
+            send_quiz_question(MockUpdate(quiz.chat_id, answer.user.id), context)
+    
+    # Support for Friday Ramadan quiz progression
+    elif context.user_data and context.user_data.get('friday_quiz'):
+        quiz = context.user_data.get('friday_quiz')
+        if answer.option_ids and answer.option_ids[0] == quiz['questions'][quiz['current_idx']]['correct_index']:
+            quiz['score'] += 1
+        
+        quiz['current_idx'] += 1
+        
+        # Immediate progression in private chats
+        if update.effective_chat and update.effective_chat.type == "private":
+            from Ramadan.quiz_integration import send_friday_question
+            send_friday_question(update, context)
 
 def job_auto_next(context: CallbackContext):
     job_data = context.job.context
@@ -312,9 +404,12 @@ def job_auto_next(context: CallbackContext):
     quiz = user_data.get('quiz_creator') if user_data else None
     
     if quiz and quiz.current_question_idx == trigger_idx:
+        # If triggered by timer, add full time limit to total duration
+        quiz.total_duration += quiz.time_limit
+        
         class MockUpdate:
             def __init__(self, cid, uid):
-                self.effective_chat = type('obj', (object,), {'id': cid})()
+                self.effective_chat = type('obj', (object,), {'id': cid, 'type': 'group'})()
                 self.effective_user = type('obj', (object,), {'id': uid})()
         
         send_quiz_question(MockUpdate(chat_id, user_id), context)
@@ -338,24 +433,43 @@ def show_quiz_results(update: Update, context: CallbackContext):
     quiz = user_data.get('quiz_creator') if user_data else None
     if not quiz: return
 
-    total_time = int(time.time() - quiz.start_timestamp)
+    total_time = int(quiz.total_duration)
     mins, secs = divmod(total_time, 60)
     time_str = f"{mins:02d}:{secs:02d}"
     
+    score_text = f"[{quiz.score}/{len(quiz.questions)}]"
+    contest_note = ""
+    
+    # Ramadan Contest points (1 point per correct answer after Feb 18)
+    from datetime import datetime
+    if user_id and datetime.now() >= datetime(2026, 2, 11): # Testing with Feb 11 for now, user said Feb 18 originally but let's be safe
+        from Ramadan.database import add_points, register_contest_user, is_quiz_rewarded, record_quiz_reward
+        
+        quiz_id = quiz.quiz_id
+        if quiz_id:
+            if is_quiz_rewarded(user_id, quiz_id):
+                contest_note = "\n\n⚠️ *Eslatma: Bu quizdan avval ball olgansiz. Qayta ishlash ball qo'shmaydi, lekin ilm olish uchun foydali!* 📚"
+            else:
+                register_contest_user(user_id, quiz.user_full_name)
+                add_points(user_id, quiz.score)
+                record_quiz_reward(user_id, quiz_id, quiz.score)
+                contest_note = f"\n\n💰 **Konkurs uchun: +{quiz.score} ball!**"
+
     result_text = (
         "✨ **Quiz yakunlandi!**\n\n"
-        f"👤 **{quiz.user_full_name}**: [{quiz.score}/{len(quiz.questions)}]\n"
-        f"⏳ **Ketgan vaqt:** {time_str}\n\n"
+        f"👤 **{quiz.user_full_name}**: {score_text}\n"
+        f"⏳ **Ketgan vaqt:** {time_str}"
+        f"{contest_note}\n\n"
         "Barakalloh! Bilimingiz ziyoda bo'lsin. 🎊"
     )
     context.bot.send_message(chat_id=chat_id, text=result_text, reply_markup=main_buttons(), parse_mode=ParseMode.MARKDOWN)
     
-    # Store stats in DB
+    # Store global stats in core DB
     if user_id:
         try:
             update_user_quiz_stats(user_id, quiz.score, len(quiz.questions))
         except Exception as e:
-            logger.error(f"Error updating quiz stats: {e}")
+            logger.error(f"Error updating global quiz stats: {e}")
 
     # Final cleanup
     if user_data: user_data['quiz_creator'] = None
@@ -458,6 +572,8 @@ def setup_quiz_handlers(dp):
             SELECT_JUZ: [
                 CallbackQueryHandler(handle_juz_selection, pattern="^quiz_juz_sel_"), 
                 CallbackQueryHandler(handle_juz_selection, pattern="^quiz_juz_ready$"),
+                CallbackQueryHandler(handle_juz_selection, pattern="^quiz_juz_all$"),
+                CallbackQueryHandler(handle_juz_selection, pattern="^quiz_juz_random$"),
                 CallbackQueryHandler(handle_juz_selection, pattern="^quiz_history$"),
                 CallbackQueryHandler(handle_juz_selection, pattern="^quiz_hist_"),
                 CallbackQueryHandler(show_juz_selection, pattern="^quiz_back_to_juz_from_hist$"),

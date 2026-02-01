@@ -1,0 +1,52 @@
+# O'zbekiston viloyatlari va vaqt farqlari (Toshkentga nisbatan daqiqalarda)
+REGIONS = {
+    "Toshkent": 0,
+    "Namangan": -5,
+    "Farg'ona": -5,
+    "Andijon": -8,
+    "Guliston": 2,
+    "Jizzax": 6,
+    "Samarqand": 10,
+    "Qarshi": 15,
+    "Navoiy": 15,
+    "Buxoro": 18,
+    "Nukus": 30,
+    "Urganch": 35,
+    "Xiva": 36,
+    "Termiz": 12
+}
+
+# Ramazon 2026 taqvimi (Toshkent vaqti bilan)
+# Format: "date": {"saharlik": "05:00", "iftorlik": "18:20"}
+RAMADAN_CALENDAR = {
+    "2026-02-18": {"saharlik": "05:55", "iftorlik": "18:03"},
+    "2026-02-19": {"saharlik": "05:54", "iftorlik": "18:05"},
+    "2026-02-20": {"saharlik": "05:53", "iftorlik": "18:06"},
+    "2026-02-21": {"saharlik": "05:51", "iftorlik": "18:07"},
+    "2026-02-22": {"saharlik": "05:50", "iftorlik": "18:08"},
+    "2026-02-23": {"saharlik": "05:48", "iftorlik": "18:09"},
+    "2026-02-24": {"saharlik": "05:47", "iftorlik": "18:11"},
+    "2026-02-25": {"saharlik": "05:46", "iftorlik": "18:12"},
+    "2026-02-26": {"saharlik": "05:44", "iftorlik": "18:13"},
+    "2026-02-27": {"saharlik": "05:43", "iftorlik": "18:14"},
+    "2026-02-28": {"saharlik": "05:41", "iftorlik": "18:15"},
+    "2026-03-01": {"saharlik": "05:40", "iftorlik": "18:16"},
+    "2026-03-02": {"saharlik": "05:38", "iftorlik": "18:18"},
+    "2026-03-03": {"saharlik": "05:37", "iftorlik": "18:19"},
+    "2026-03-04": {"saharlik": "05:35", "iftorlik": "18:20"},
+    "2026-03-05": {"saharlik": "05:34", "iftorlik": "18:21"},
+    "2026-03-06": {"saharlik": "05:32", "iftorlik": "18:22"},
+    "2026-03-07": {"saharlik": "05:30", "iftorlik": "18:23"},
+    "2026-03-08": {"saharlik": "05:29", "iftorlik": "18:24"},
+    "2026-03-09": {"saharlik": "05:27", "iftorlik": "18:26"},
+    "2026-03-10": {"saharlik": "05:25", "iftorlik": "18:27"},
+    "2026-03-11": {"saharlik": "05:24", "iftorlik": "18:28"},
+    "2026-03-12": {"saharlik": "05:22", "iftorlik": "18:29"},
+    "2026-03-13": {"saharlik": "05:20", "iftorlik": "18:30"},
+    "2026-03-14": {"saharlik": "05:19", "iftorlik": "18:31"},
+    "2026-03-15": {"saharlik": "05:17", "iftorlik": "18:32"},
+    "2026-03-16": {"saharlik": "05:15", "iftorlik": "18:33"},
+    "2026-03-17": {"saharlik": "05:13", "iftorlik": "18:35"},
+    "2026-03-18": {"saharlik": "05:12", "iftorlik": "18:36"},
+    "2026-03-19": {"saharlik": "05:10", "iftorlik": "18:37"},
+}
