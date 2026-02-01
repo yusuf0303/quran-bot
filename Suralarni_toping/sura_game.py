@@ -267,6 +267,8 @@ def oyat_savolini_korsatish(update: Update, context: CallbackContext, oyat: dict
                 sent_audio = context.bot.send_audio(
                     chat_id=chat_id,
                     audio=audio_manzili,
+                    title="Oyat",
+                    performer="KalomUz",
                     parse_mode="HTML"
                 )
                 oyat_oyini_instance.last_audio_message_id = sent_audio.message_id

@@ -133,9 +133,9 @@ def send_daily_random_ayah_to_all_users(bot: Bot):
     rasm_url = f"https://cdn.islamic.network/quran/images/high-resolution/{sura_num}_{oyat_num}.png"
     caption_matn = (
         f"<b>{suraEngName} surasi</b>\n📖  <b>{sura_num}-sura, {oyat_num}-oyat</b>\n\n"
-        f"<code>{arab_matn}</code>"
+        f"<code>{arab_matn}</code>\n\n@KalomUzBot"
     )
-    caption_tarjima = f"📘  <code>{tarjima}</code>"
+    caption_tarjima = f"📘  <code>{tarjima}</code>\n\n@KalomUzBot"
 
     # 5) Foydalanuvchilar ro'yxatini olish
     try:
