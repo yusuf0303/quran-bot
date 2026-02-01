@@ -5,6 +5,7 @@ from telegram.ext import (CallbackContext, CommandHandler, MessageHandler,
                           Filters, ConversationHandler)
 
 from Suralar.menu_button import logger
+from Masjidlar.transliterate import to_latin
 
 MAIN_MENU = [
     [KeyboardButton("Eng yaqin Masjid 📍", request_location=True)],
@@ -73,7 +74,7 @@ def get_nearest_mosques(lat, lon):
 def mosques_menu(update: Update, context: CallbackContext):
     buttons, row = [], []
     for name in provinces_dict.values():
-        row.append(KeyboardButton(name))
+        row.append(KeyboardButton(to_latin(name)))
         if len(row) == 2:
             buttons.append(row)
             row = []
@@ -87,7 +88,7 @@ def mosques_menu(update: Update, context: CallbackContext):
 # ==== 2. Tuman ro'yxati ====
 def show_districts(update: Update, context: CallbackContext):
     selected_name = update.message.text.strip()
-    province_id = next((pid for pid, name in provinces_dict.items() if name == selected_name), None)
+    province_id = next((pid for pid, name in provinces_dict.items() if to_latin(name) == selected_name), None)
     if not province_id:
         update.message.reply_text("❗ Tanlangan viloyat topilmadi.")
         return PROVINCE
@@ -98,14 +99,14 @@ def show_districts(update: Update, context: CallbackContext):
         return PROVINCE
     buttons, row = [], []
     for d in districts:
-        row.append(KeyboardButton(d["name"]))
+        row.append(KeyboardButton(to_latin(d["name"])))
         if len(row) == 2:
             buttons.append(row)
             row = []
     if row:
         buttons.append(row)
     buttons.append([KeyboardButton("⬅️ Orqaga"), KeyboardButton("Menyuga qaytish 🔝")])
-    update.message.reply_text(f"📍 {selected_name} tumanlari:",
+    update.message.reply_text(f"📍 {to_latin(selected_name)} tumanlari:",
                               reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True))
     return DISTRICT
 
@@ -115,7 +116,7 @@ def show_mosques(update: Update, context: CallbackContext):
     selected_district = update.message.text.strip()
     province_id = context.user_data.get("selected_province_id")
     districts = get_province_districts(province_id)
-    district = next((d for d in districts if d["name"] == selected_district), None)
+    district = next((d for d in districts if to_latin(d["name"]) == selected_district), None)
     if not district:
         update.message.reply_text("❗ Tuman topilmadi.")
         return DISTRICT
@@ -127,14 +128,14 @@ def show_mosques(update: Update, context: CallbackContext):
         return DISTRICT
     buttons, row = [], []
     for m in mosques:
-        row.append(KeyboardButton(m["name"]))
+        row.append(KeyboardButton(to_latin(m["name"])))
         if len(row) == 2:
             buttons.append(row)
             row = []
     if row:
         buttons.append(row)
     buttons.append([KeyboardButton("⬅️ Orqaga"), KeyboardButton("Menyuga qaytish 🔝")])
-    update.message.reply_text(f"🕌 {selected_district} tumanidagi masjidlar:",
+    update.message.reply_text(f"🕌 {to_latin(selected_district)} tumanidagi masjidlar:",
                               reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True))
     return MOSQUE
 
@@ -144,7 +145,7 @@ def show_mosque_info(update: Update, context: CallbackContext):
     name = update.message.text.strip()
     district_id = context.user_data.get("selected_district_id")
     mosques = get_mosques_by_districts(district_id)
-    mosque = next((m for m in mosques if m["name"] == name), None)
+    mosque = next((m for m in mosques if to_latin(m["name"]) == name), None)
 
     if not mosque:
         update.message.reply_text("❗ Masjid topilmadi.")
@@ -171,7 +172,7 @@ def show_mosque_info(update: Update, context: CallbackContext):
         context.bot.send_location(chat_id=update.effective_chat.id, latitude=lat, longitude=lon)
 
     # Xabar
-    update.message.reply_text(f"🏙 {mosque['name']}\n📍 Manzil: {address}")
+    update.message.reply_text(f"🏙 {to_latin(mosque['name'])}\n📍 Manzil: {to_latin(address)}")
     return MOSQUE
 
 
@@ -226,8 +227,8 @@ def handle_location(update: Update, context: CallbackContext):
     else:
         dist_text = f"{round(distance, 3)} km"
 
-    caption = (f"🕌 {name}\n"
-               f"📍 Manzil: {address}\n"
+    caption = (f"🕌 {to_latin(name)}\n"
+               f"📍 Manzil: {to_latin(address)}\n"
                f"📏 Masofa: {dist_text}")
     if lat and lon:
         context.bot.send_location(chat_id=update.effective_chat.id, latitude=lat, longitude=lon)
@@ -250,7 +251,7 @@ def back_to_districts(update: Update, context: CallbackContext):
 
     buttons, row = [], []
     for d in districts:
-        row.append(KeyboardButton(d["name"]))
+        row.append(KeyboardButton(to_latin(d["name"])))
         if len(row) == 2:
             buttons.append(row)
             row = []
