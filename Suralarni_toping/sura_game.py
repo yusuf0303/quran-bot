@@ -584,7 +584,7 @@ def bosh_menyuga_qaytish(update: Update, context: CallbackContext):
         try:
             query.edit_message_text(
                 text="🏠 Bosh menyu, bo'limlardan birini tanlang:",
-                reply_markup=main_buttons()
+                reply_markup=main_buttons(user.id)
             )
         except Exception as edit_error:
             logger.warning(f"Xabarni o'zgartirib bo'lmadi, yangi xabar yuboriladi: {edit_error}")
@@ -592,7 +592,7 @@ def bosh_menyuga_qaytish(update: Update, context: CallbackContext):
             context.bot.send_message(
                 chat_id=chat_id,
                 text="🏠 Bosh menyu, bo'limlardan birini tanlang:",
-                reply_markup=main_buttons()
+                reply_markup=main_buttons(user.id)
             )
 
             try:
@@ -608,7 +608,7 @@ def bosh_menyuga_qaytish(update: Update, context: CallbackContext):
         context.bot.send_message(
             chat_id=chat_id,
             text="🏠 Bosh menyu, bo'limlardan birini tanlang:",
-            reply_markup=main_buttons()
+            reply_markup=main_buttons(user.id)
         )
 
 

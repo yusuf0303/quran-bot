@@ -19,8 +19,13 @@ from Ramadan.handlers import konkurs_command, leaderboard_callback, set_region_c
 from Ramadan.database import add_referral
 from Ramadan.contest_logic import get_leaderboard_text
 from access_control import ensure_access, show_access_denied
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="telegram.ext.conversationhandler")
 
 load_dotenv()
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="telegram.ext.conversationhandler")
+
 logger = logging.getLogger(__name__)
 
 def start_bot(update, context):
@@ -32,6 +37,7 @@ def start_bot(update, context):
         BotCommand(command='konkurs', description="Ramazon konkursi (Dashboard)"),
         BotCommand(command='reyting', description="Umumiy peshqadamlar ro'yxati"),
         BotCommand(command='hudud', description="Saharlik/Iftor vaqtini belgilash"),
+        BotCommand(command='juma_test', description="Juma testi (Haftalik)"),
         BotCommand(command='help', description="Yordam olish")
     ]
     context.bot.set_my_commands(commands)
@@ -154,10 +160,12 @@ def handle_invalid_message(update, context):
     if not ensure_access(update, context):
         return
     
-    update.message.reply_text(
-        f"Hurmatli {update.effective_user.first_name}, botdan foydalanish uchun quyidagi tugmalardan foydalaning.👇",
-        reply_markup=main_buttons(update.effective_user.id)
-    )
+    msg = update.effective_message
+    if msg:
+        msg.reply_text(
+            f"Hurmatli {update.effective_user.first_name}, botdan foydalanish uchun quyidagi tugmalardan foydalaning.👇",
+            reply_markup=main_buttons(update.effective_user.id)
+        )
 
 def main():
     bot_token = os.getenv("BOT_TOKEN")
@@ -189,6 +197,10 @@ def main():
     dp.add_handler(CallbackQueryHandler(wrapped_handler(save_region_callback), pattern="^ramadan_save_reg_"))
     dp.add_handler(CallbackQueryHandler(wrapped_handler(insta_verify_callback), pattern="^ramadan_insta_verify$"))
     dp.add_handler(CallbackQueryHandler(wrapped_handler(ramadan_back_callback), pattern="^ramadan_back_to_status$"))
+    
+    # Friday Test Start Callback
+    from Ramadan.quiz_integration import handle_friday_test_start
+    dp.add_handler(CallbackQueryHandler(wrapped_handler(handle_friday_test_start), pattern="^start_friday_test$"))
     
     dp.add_handler(CallbackQueryHandler(terms_confirmation, pattern="^confirm_terms$"))
     dp.add_handler(MessageHandler(Filters.regex("^Suralar 🔍$"), wrapped_handler(user_main_menu)))

@@ -42,7 +42,8 @@ def konkurs_command(update: Update, context: CallbackContext):
         [InlineKeyboardButton("📸 Instagram", url=INSTAGRAM_URL),
         InlineKeyboardButton("📢 Telegram kanal", url="https://t.me/KalomUz_News")],
         [InlineKeyboardButton("👥 Do'stlarni taklif qilish", switch_inline_query=f"ramadan_r{user_id}")],
-        [InlineKeyboardButton("🏆 Reytingni ko'rish", callback_data="ramadan_leaderboard")],
+        [InlineKeyboardButton("🏆 Reytingni ko'rish", callback_data="ramadan_leaderboard"),
+         InlineKeyboardButton("🌙 Juma Testi 🚀", callback_data="start_friday_test")],
         [InlineKeyboardButton("📍 Hududni tanlash", callback_data="ramadan_set_region")],
         [InlineKeyboardButton("✅ Obuna bo'ldim", callback_data="ramadan_insta_verify")]
     ]
@@ -95,7 +96,8 @@ def save_region_callback(update: Update, context: CallbackContext):
         [InlineKeyboardButton("📸 Instagram", url=INSTAGRAM_URL),
         InlineKeyboardButton("📢 Telegram kanal", url="https://t.me/KalomUz_News")],
         [InlineKeyboardButton("👥 Do'stlarni taklif qilish", switch_inline_query=f"ramadan_r{user_id}")],
-        [InlineKeyboardButton("🏆 Reytingni ko'rish", callback_data="ramadan_leaderboard")],
+        [InlineKeyboardButton("🏆 Reytingni ko'rish", callback_data="ramadan_leaderboard"),
+         InlineKeyboardButton("🌙 Juma Testi 🚀", callback_data="start_friday_test")],
         [InlineKeyboardButton("📍 Hududni tanlash", callback_data="ramadan_set_region")],
         [InlineKeyboardButton("✅ Obuna bo'ldim", callback_data="ramadan_insta_verify")]
     ]
@@ -124,7 +126,8 @@ def ramadan_back_callback(update: Update, context: CallbackContext):
         [InlineKeyboardButton("📸 Instagram", url=INSTAGRAM_URL),
         InlineKeyboardButton("📢 Telegram kanal", url="https://t.me/KalomUz_News")],
         [InlineKeyboardButton("👥 Do'stlarni taklif qilish", switch_inline_query=f"ramadan_r{user_id}")],
-        [InlineKeyboardButton("🏆 Reytingni ko'rish", callback_data="ramadan_leaderboard")],
+        [InlineKeyboardButton("🏆 Reytingni ko'rish", callback_data="ramadan_leaderboard"),
+         InlineKeyboardButton("🌙 Juma Testi 🚀", callback_data="start_friday_test")],
         [InlineKeyboardButton("📍 Hududni tanlash", callback_data="ramadan_set_region")],
         [InlineKeyboardButton("✅ Obuna bo'ldim", callback_data="ramadan_insta_verify")]
     ]
@@ -134,13 +137,13 @@ def ramadan_back_callback(update: Update, context: CallbackContext):
         update.message.reply_text(status_text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode=ParseMode.MARKDOWN)
 
 def juma_test_command(update: Update, context: CallbackContext):
-    from Ramadan.quiz_integration import start_friday_quiz
+    from Ramadan.quiz_integration import send_friday_quiz_notification
     from datetime import datetime
     
-    # Check if today is Friday (4 is Friday)
-    if datetime.now().weekday() != 4:
-        # Per user request, we allow testing (mocking Friday)
-        # But for production it should be strict.
-        pass 
+    now = datetime.now()
+    # Debugging: Allow Friday (4)
+    if now.weekday() not in [4]:
+        update.message.reply_text("⚠️ **Bugun juma emas!**\n\nJuma testi faqat juma kunlari bo'lib o'tadi. Iltimos, juma kunini kuting!", parse_mode=ParseMode.MARKDOWN)
+        return
 
-    start_friday_quiz(update, context)
+    send_friday_quiz_notification(update, context)

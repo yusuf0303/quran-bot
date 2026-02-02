@@ -266,7 +266,7 @@ def back_to_districts(update: Update, context: CallbackContext):
 def go_home(update: Update, context: CallbackContext) -> int:
     update.message.reply_text(
         "🏠 Asosiy menyuga qaytdingiz! Quyidagi menyulardan birini tanlang:",
-        reply_markup=main_buttons()
+        reply_markup=main_buttons(update.effective_user.id)
     )
     return ConversationHandler.END
 

@@ -45,6 +45,16 @@ def init_ramadan_db():
     )
     """)
     
+    # Migration: Check if quiz_id column exists
+    try:
+        cursor.execute("SELECT quiz_id FROM quiz_history LIMIT 1")
+    except sqlite3.OperationalError:
+        # Column missing, add it
+        try:
+            cursor.execute("ALTER TABLE quiz_history ADD COLUMN quiz_id TEXT")
+            cursor.execute("ALTER TABLE quiz_history ADD COLUMN quiz_type TEXT")
+        except: pass
+    
     conn.commit()
     conn.close()
 

@@ -77,4 +77,47 @@ def start_ramadan_scheduler(bot):
     scheduler.add_job(check_and_send_ramadan_reminders, 'interval', minutes=1, args=[bot])
     # Weekly bonus on Friday night
     scheduler.add_job(award_weekly_bonus, 'cron', day_of_week='fri', hour=23, minute=59, args=[bot])
+    
+    # Friday Quiz Notification at 04:00 AM
+    scheduler.add_job(send_friday_quiz_notification_broadcast, 'cron', day_of_week='fri', hour=4, minute=0, args=[bot])
+    
     scheduler.start()
+
+def send_friday_quiz_notification_broadcast(bot):
+    # Iterate all registered contest users and send notification
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT user_id FROM contest_users")
+    users = cursor.fetchall()
+    conn.close()
+    
+    from Ramadan.quiz_integration import send_friday_quiz_notification
+    
+    # Create a mock update/context or modify send_friday_quiz_notification to handle raw bot and chat_id
+    # We'll use a simple wrapper class or just call bot.send_message directly here for efficiency?
+    # Better to reuse the function which has the text.
+    # Let's adapt send_friday_quiz_notification in quiz_integration to handle being called with just chat_id if we pass it properly.
+    # Actually, send_friday_quiz_notification uses context.bot.send_message.
+    # We can create a lightweight context object.
+    
+    class MockJob:
+        def __init__(self, ctx):
+            self.context = ctx
+            
+    class MockContext:
+        def __init__(self, b, job_ctx):
+            self.bot = b
+            self.job = MockJob(job_ctx)
+            
+    count = 0
+    for tup in users:
+        uid = tup[0]
+        try:
+            # We pass None as update, so it checks context.job.context
+            send_friday_quiz_notification(None, MockContext(bot, uid))
+            count += 1
+            if count % 20 == 0: time.sleep(0.1) # Rate limit protection
+        except Exception:
+            pass
+            
+import time

@@ -384,6 +384,7 @@ def handle_poll_answer(update: Update, context: CallbackContext):
             send_quiz_question(MockUpdate(quiz.chat_id, answer.user.id), context)
     
     # Support for Friday Ramadan quiz progression
+    # Support for Friday Ramadan quiz progression
     elif context.user_data and context.user_data.get('friday_quiz'):
         quiz = context.user_data.get('friday_quiz')
         if answer.option_ids and answer.option_ids[0] == quiz['questions'][quiz['current_idx']]['correct_index']:
@@ -391,10 +392,20 @@ def handle_poll_answer(update: Update, context: CallbackContext):
         
         quiz['current_idx'] += 1
         
-        # Immediate progression in private chats
-        if update.effective_chat and update.effective_chat.type == "private":
-            from Ramadan.quiz_integration import send_friday_question
-            send_friday_question(update, context)
+        # Check explicit chat_id or fall back to poll user
+        chat_id = quiz.get('chat_id')
+        if not chat_id: chat_id = answer.user.id
+        
+        # Immediate progression
+        from Ramadan.quiz_integration import send_friday_question
+        
+        class MockUpdate:
+            def __init__(self, cid, uid, fname):
+                self.effective_chat = type('obj', (object,), {'id': cid, 'type': 'private'})()
+                self.effective_user = type('obj', (object,), {'id': uid, 'full_name': fname})()
+                self.poll_answer = None
+        
+        send_friday_question(MockUpdate(chat_id, answer.user.id, answer.user.full_name), context)
 
 def job_auto_next(context: CallbackContext):
     job_data = context.job.context
@@ -462,7 +473,7 @@ def show_quiz_results(update: Update, context: CallbackContext):
         f"{contest_note}\n\n"
         "Barakalloh! Bilimingiz ziyoda bo'lsin. 🎊"
     )
-    context.bot.send_message(chat_id=chat_id, text=result_text, reply_markup=main_buttons(), parse_mode=ParseMode.MARKDOWN)
+    context.bot.send_message(chat_id=chat_id, text=result_text, reply_markup=main_buttons(user_id), parse_mode=ParseMode.MARKDOWN)
     
     # Store global stats in core DB
     if user_id:
@@ -562,7 +573,7 @@ def show_quiz_stats(update: Update, context: CallbackContext):
 
 def quiz_cancel(update: Update, context: CallbackContext):
     if update.callback_query: update.callback_query.answer()
-    context.bot.send_message(chat_id=update.effective_chat.id, text="🏠 Asosiy menyuga qaytdingiz! Quyidagi menyulardan birini tanlang:", reply_markup=main_buttons())
+    context.bot.send_message(chat_id=update.effective_chat.id, text="🏠 Asosiy menyuga qaytdingiz! Quyidagi menyulardan birini tanlang:", reply_markup=main_buttons(update.effective_user.id))
     return ConversationHandler.END
 
 def setup_quiz_handlers(dp):

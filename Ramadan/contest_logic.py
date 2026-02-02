@@ -17,6 +17,11 @@ def check_subscription(bot, user_id):
             return False
     return True
 
+def escape_markdown(text):
+    """Helper to escape markdown special characters."""
+    if not text: return ""
+    return text.replace("_", "\\_").replace("*", "\\*").replace("`", "\\`").replace("[", "\\[")
+
 def get_konkurs_status(user_id, bot_username):
     user = get_contest_user(user_id)
     if not user:
@@ -24,18 +29,21 @@ def get_konkurs_status(user_id, bot_username):
     
     uid, name, points, region, ref_count, joined_bonus, insta_claimed, last_quiz = user
     
+    # Escape name to prevent markdown errors
+    safe_name = escape_markdown(name)
+    
     ref_link = f"https://t.me/{bot_username}?start=r{user_id}"
     
     status_text = (
         f"🌙 **Ramazon Konkursi 2026**\n\n"
-        f"👤 **Foydalanuvchi:** {name}\n"
+        f"👤 **Foydalanuvchi:** {safe_name}\n"
         f"🆔 **ID:** `{user_id}`\n"
         f"📍 **Hudud:** {region if region else 'Tanlanmagan /hudud'}\n\n"
         f"💰 **Jami ball:** {points}\n"
         f"👥 **Taklif qilingan do'stlar:** {ref_count} ta\n\n"
-        f"🔗 **Sizning referal havolangiz:**\n{ref_link}\n\n"
+        f"🔗 **Sizning referal havolangiz:**\n`{ref_link}`\n\n"
         f"📜 **Shartlar:**\n"
-        f"1. [KalomUz_News](https://t.me/KalomUz_News) kanaliga a'zo bo'lish (+5 ball)\n"
+        f"1. [KalomUz\\_News](https://t.me/KalomUz_News) kanaliga a'zo bo'lish (+5 ball)\n"
         f"2. [Instagram](https://instagram.com/kalomuz)ga obuna bo'lish (+5 ball)\n"
         f"3. Do'stlarni taklif qilish (Har bir do'st uchun +10 ball)\n"
         f"4. Juma kungi quiz testi (Har bir to'g'ri javob +5 ball)\n"
@@ -51,8 +59,9 @@ def get_leaderboard_text():
     
     text = "🏆 **Ramazon Konkursi - Kuchli 10 talik:**\n\n"
     for i, (name, points) in enumerate(leaders, 1):
+        safe_name = escape_markdown(name)
         medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else "👤"
-        text += f"{i}. {medal} **{name}** — {points} ball\n"
+        text += f"{i}. {medal} **{safe_name}** — {points} ball\n"
     
     text += "\nOlg'a! Siz ham g'olib bo'lishingiz mumkin! 🚀"
     return text
