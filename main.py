@@ -104,7 +104,7 @@ def start_bot(update, context):
     # (Deep link logic above already handles return if quiz found)
     update.message.reply_text(
         f"Assalomu alaykum, {update.effective_user.full_name}! Botga qaytganingizdan xursandmiz. 😊",
-        reply_markup=main_buttons()
+        reply_markup=main_buttons(user_id)
     )
 
 # Logic moved to access_control.py
@@ -130,7 +130,7 @@ def terms_confirmation(update, context):
         context.bot.send_message(
             chat_id=query.message.chat_id,
             text="Quyidagi bo'limlardan birini tanlang 👇",
-            reply_markup=main_buttons()
+            reply_markup=main_buttons(update.effective_user.id)
         )
 
 def help_command(update, context):
@@ -156,7 +156,7 @@ def handle_invalid_message(update, context):
     
     update.message.reply_text(
         f"Hurmatli {update.effective_user.first_name}, botdan foydalanish uchun quyidagi tugmalardan foydalaning.👇",
-        reply_markup=main_buttons()
+        reply_markup=main_buttons(update.effective_user.id)
     )
 
 def main():
@@ -199,6 +199,10 @@ def main():
     setup_inline_handlers(dp)
     setup_prayer_times_handlers(dp) # These have internal checks or can be wrapped if they expose handlers
     setup_mosque_handlers(dp)
+    
+    from admin_broadcast import setup_admin_handlers
+    setup_admin_handlers(dp)
+    
     dp.add_handler(CallbackQueryHandler(wrapped_handler(button_handler)))  # Catch-all for Suralar section
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_invalid_message))
     updater.start_polling()

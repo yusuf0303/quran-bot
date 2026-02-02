@@ -8,11 +8,18 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def main_buttons():
+import os
+
+def main_buttons(user_id=None):
     keyboard = [
         [KeyboardButton("Eng yaqin Masjid 📍", request_location=True)],
         ["Suralar 🔍", "Oyatlarni toping 🔍"],
         ["Masjidlar 🕌", "Namoz vaqtlari 🧎‍♂️"],
         ["Quiz yaratish 📝", "Konkurs 🏆"]
     ]
+    
+    admin_id = int(os.getenv("ADMIN_ID", 0))
+    if user_id and user_id == admin_id:
+        keyboard.append(["Xabar yuborish 📤"])
+        
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
