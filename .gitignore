@@ -62,8 +62,8 @@ db.sqlite3
 db.sqlite3-journal
 *.db
 Ramadan/ramadan.db
-#Suralarni_toping/ayah_game.db
-#data/database.db
+!Suralarni_toping/ayah_game.db
+!data/database.db
 
 # Flask stuff:
 instance/
