@@ -135,7 +135,7 @@ def terms_confirmation(update, context):
         query.edit_message_text("Tabriklaymiz! Ro'yxatdan o'tish muvaffaqiyatli yakunlandi. ✅")
         context.bot.send_message(
             chat_id=query.message.chat_id,
-            text="Quyidagi bo'limlardan birini tanlang 👇",
+            text="Quyidagi bo'limlardan birini tanlang 👇\n\n🏆 Ramazon konkursida ishtirok etish uchun /konkurs buyrug'ini bosing! 🌙",
             reply_markup=main_buttons(update.effective_user.id)
         )
 
