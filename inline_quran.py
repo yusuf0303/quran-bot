@@ -158,7 +158,10 @@ def inline_query_handler(update, context):
     ]
 
     # Agar hech qanday sura topilmasa -> Matn bo'yicha qidirish
-    if not matching_surahs and surah_name_part != "sajda":
+    # Yoki sura topildi, lekin bu "Sura Nomi" (1 so'z) yoki "Sura Nomi Ayah" (Sura N) formati emas
+    # Masalan: "Bas, haq podshoh..." -> "Bas" surasi yo'q, lekin "Haq" (Haqqah) bo'lishi mumkin.
+    # Yoki "Nur ustiga nur" -> "Nur" surasi bor, lekin user matn qidiryapti.
+    if (not matching_surahs or (len(parts) > 1 and not ayah_num)) and surah_name_part != "sajda":
         search_query = normalize_query(query)
         
         # Determine offset for pagination
