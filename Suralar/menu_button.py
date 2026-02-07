@@ -20,6 +20,6 @@ def main_buttons(user_id=None):
     
     admin_id = int(os.getenv("ADMIN_ID", 0))
     if user_id and user_id == admin_id:
-        keyboard.append(["Xabar yuborish 📤"])
+        keyboard.append(["Xabar yuborish 📤", "Admin ⚙️"])
         
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)

@@ -16,6 +16,8 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 from Quiz.quiz_creator import setup_quiz_handlers, handle_poll_answer
 from Suralar.button_handler import button_handler
 from Ramadan.handlers import konkurs_command, leaderboard_callback, reyting_command, set_region_callback, save_region_callback, insta_verify_callback, ramadan_back_callback, juma_test_command
+from Admin.stats import admin_stats_command, admin_users_callback, admin_back_stats_callback
+from namoz_vaqtlari.scheduler import start_prayer_scheduler
 from Ramadan.database import add_referral
 from Ramadan.contest_logic import get_leaderboard_text
 from access_control import ensure_access, show_access_denied
@@ -174,6 +176,7 @@ def main():
     updater = Updater(bot_token, use_context=True, request_kwargs={'connect_timeout': 20, 'read_timeout': 20})
     from Ramadan.scheduler import start_ramadan_scheduler
     start_ramadan_scheduler(updater.bot)
+    start_prayer_scheduler(updater.bot)
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("start", start_bot))
     dp.add_handler(CommandHandler("help", help_command))
@@ -187,6 +190,10 @@ def main():
 
     dp.add_handler(CommandHandler("konkurs", wrapped_handler(konkurs_command)))
     dp.add_handler(CommandHandler("reyting", wrapped_handler(reyting_command)))
+    dp.add_handler(CommandHandler("stats", admin_stats_command))
+    dp.add_handler(CommandHandler("users", admin_users_callback))
+    dp.add_handler(MessageHandler(Filters.regex("^Admin ⚙️$"), admin_stats_command))
+    dp.add_handler(MessageHandler(Filters.regex("^Foydalanuvchilar ro'yxati 👥$"), admin_users_callback))
     dp.add_handler(CommandHandler("hudud", wrapped_handler(set_region_callback)))
     dp.add_handler(CommandHandler("juma_test", wrapped_handler(juma_test_command)))
     dp.add_handler(MessageHandler(Filters.regex("^Konkurs 🏆$"), wrapped_handler(konkurs_command)))
@@ -197,6 +204,10 @@ def main():
     dp.add_handler(CallbackQueryHandler(wrapped_handler(save_region_callback), pattern="^ramadan_save_reg_"))
     dp.add_handler(CallbackQueryHandler(wrapped_handler(insta_verify_callback), pattern="^ramadan_insta_verify$"))
     dp.add_handler(CallbackQueryHandler(wrapped_handler(ramadan_back_callback), pattern="^ramadan_back_to_status$"))
+    
+    # Admin Callbacks
+    dp.add_handler(CallbackQueryHandler(admin_users_callback, pattern=r"^admin_users_\d+$"))
+    dp.add_handler(CallbackQueryHandler(admin_back_stats_callback, pattern="^admin_back_stats$"))
     
     # Friday Test Start Callback
     from Ramadan.quiz_integration import handle_friday_test_start
