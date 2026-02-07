@@ -15,7 +15,7 @@ from inline_quran import setup_inline_handlers
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler, PollAnswerHandler
 from Quiz.quiz_creator import setup_quiz_handlers, handle_poll_answer
 from Suralar.button_handler import button_handler
-from Ramadan.handlers import konkurs_command, leaderboard_callback, set_region_callback, save_region_callback, insta_verify_callback, ramadan_back_callback, juma_test_command
+from Ramadan.handlers import konkurs_command, leaderboard_callback, reyting_command, set_region_callback, save_region_callback, insta_verify_callback, ramadan_back_callback, juma_test_command
 from Ramadan.database import add_referral
 from Ramadan.contest_logic import get_leaderboard_text
 from access_control import ensure_access, show_access_denied
@@ -186,7 +186,7 @@ def main():
         return wrapper
 
     dp.add_handler(CommandHandler("konkurs", wrapped_handler(konkurs_command)))
-    dp.add_handler(CommandHandler("reyting", wrapped_handler(lambda u, c: u.message.reply_text(get_leaderboard_text(), parse_mode='Markdown'))))
+    dp.add_handler(CommandHandler("reyting", wrapped_handler(reyting_command)))
     dp.add_handler(CommandHandler("hudud", wrapped_handler(set_region_callback)))
     dp.add_handler(CommandHandler("juma_test", wrapped_handler(juma_test_command)))
     dp.add_handler(MessageHandler(Filters.regex("^Konkurs 🏆$"), wrapped_handler(konkurs_command)))

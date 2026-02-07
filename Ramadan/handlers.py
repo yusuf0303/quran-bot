@@ -59,7 +59,13 @@ def leaderboard_callback(update: Update, context: CallbackContext):
     if "_" in data and data.split("_")[-1].isdigit():
         page = int(data.split("_")[-1])
     
-    from Ramadan.database import get_total_contest_users
+    send_leaderboard(update, context, page, is_callback=True)
+
+def reyting_command(update: Update, context: CallbackContext):
+    send_leaderboard(update, context, page=1, is_callback=False)
+
+def send_leaderboard(update: Update, context: CallbackContext, page=1, is_callback=False):
+    from Ramadan.database import get_total_contest_users, get_leaderboard_page
     total = get_total_contest_users()
     if total == 0:
         # Fallback in case total count is weird but we have leaders
@@ -82,7 +88,13 @@ def leaderboard_callback(update: Update, context: CallbackContext):
         keyboard.append(nav_row)
         
     keyboard.append([InlineKeyboardButton("⬅️ Orqaga", callback_data="ramadan_back_to_status")])
-    query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode=ParseMode.MARKDOWN)
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    if is_callback:
+        query = update.callback_query
+        query.edit_message_text(text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
+    else:
+        update.message.reply_text(text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
 
 def set_region_callback(update: Update, context: CallbackContext):
     query = update.callback_query
