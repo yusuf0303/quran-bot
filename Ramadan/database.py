@@ -69,13 +69,17 @@ def get_contest_user(user_id):
 def register_contest_user(user_id, full_name):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+    # Use REPLACE or UPDATE to ensure name is current (important if they were placeholder)
     cursor.execute("INSERT OR IGNORE INTO contest_users (user_id, full_name) VALUES (?, ?)", (user_id, full_name))
+    cursor.execute("UPDATE contest_users SET full_name = ? WHERE user_id = ?", (full_name, user_id))
     conn.commit()
     conn.close()
 
 def add_points(user_id, points):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+    # Ensure user exists before adding points
+    cursor.execute("INSERT OR IGNORE INTO contest_users (user_id, full_name) VALUES (?, 'Foydalanuvchi')", (user_id,))
     cursor.execute("UPDATE contest_users SET points = points + ? WHERE user_id = ?", (points, user_id))
     conn.commit()
     conn.close()
@@ -84,6 +88,8 @@ def add_referral(referrer_id, referred_id):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     try:
+        # Pre-register referrer with placeholder to avoid losing points later
+        cursor.execute("INSERT OR IGNORE INTO contest_users (user_id, full_name) VALUES (?, 'Ishtirokchi')", (referrer_id,))
         cursor.execute("INSERT INTO referrals (referrer_id, referred_id) VALUES (?, ?)", (referrer_id, referred_id))
         conn.commit()
     except sqlite3.IntegrityError:
@@ -98,6 +104,9 @@ def verify_referral(referred_id):
     result = cursor.fetchone()
     if result:
         referrer_id = result[0]
+        # Ensure referrer exists in contest_users table
+        cursor.execute("INSERT OR IGNORE INTO contest_users (user_id, full_name) VALUES (?, 'Ishtirokchi')", (referrer_id,))
+        
         cursor.execute("UPDATE referrals SET is_verified = 1 WHERE referred_id = ?", (referred_id,))
         cursor.execute("UPDATE contest_users SET points = points + 10, referrals_count = referrals_count + 1 WHERE user_id = ?", (referrer_id,))
         conn.commit()
