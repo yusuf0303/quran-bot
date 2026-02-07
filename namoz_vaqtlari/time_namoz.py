@@ -1,7 +1,7 @@
 import logging
 
 import requests
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     CommandHandler, MessageHandler, Filters,
     CallbackContext, ConversationHandler
@@ -132,8 +132,11 @@ def format_prayer_time(update: Update, context: CallbackContext, prayer_key: str
         update.message.reply_text(
             text=text,
             parse_mode="HTML",
-            reply_markup=ReplyKeyboardMarkup(PRAYER_TIMES, resize_keyboard=True)
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🚀 Ulashish", switch_inline_query=f"namoz_{region}_{district if district else ''}")]
+            ])
         )
+        # Also show the navigation menu if it's not there, but it should be already
 
     except Exception as e:
         logging.error(f"{prayer_name} vaqtini olishda xatolik: {e}")
@@ -201,7 +204,9 @@ def format_daily_prayers(update: Update, context: CallbackContext):
         update.message.reply_text(
             text=text,
             parse_mode="HTML",
-            reply_markup=ReplyKeyboardMarkup(PRAYER_TIMES, resize_keyboard=True)
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🚀 Ulashish", switch_inline_query=f"namoz_{region}_{district if district else ''}")]
+            ])
         )
 
     except Exception as e:
@@ -256,7 +261,9 @@ def format_weekly_prayers(update: Update, context: CallbackContext):
         update.message.reply_text(
             text=text,
             parse_mode="HTML",
-            reply_markup=ReplyKeyboardMarkup(PRAYER_TIMES, resize_keyboard=True)
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🚀 Ulashish", switch_inline_query=f"namoz_{region}_{district if district else ''}")]
+            ])
         )
 
     except Exception as e:
@@ -300,25 +307,99 @@ def go_home(update: Update, context: CallbackContext) -> int:
 
 def get_data(region, district=None):
     try:
-
         # Viloyat nomini API uchun formatga o'tkazamiz
         api_region = API_REGION_NAMES.get(region, region.lower())
 
         url = f"https://islomapi.uz/api/present/day?region={api_region}"
-        response = requests.get(url, timeout=(5, 20))
+        response = requests.get(url, timeout=(5, 10))
 
         if response.status_code == 200:
             data = response.json()
-            if 'error' in data:
-                logger.error(f"API error for {region}: {data['error']}")
-                return None
+            if data.get('success') is False or 'times' not in data:
+                logger.warning(f"islomapi.uz returned error or empty data for {region}. Trying fallback...")
+                return get_aladhan_data(region, district)
             return data
         else:
-            logger.error(f"API request failed for {region}: {response.status_code}")
-            return None
+            logger.warning(f"islomapi.uz failed with status {response.status_code}. Trying fallback...")
+            return get_aladhan_data(region, district)
 
     except Exception as e:
-        logger.error(f"Error getting data for {region}: {str(e)}")
+        logger.error(f"Error getting data for {region} from islomapi.uz: {str(e)}")
+        return get_aladhan_data(region, district)
+
+
+def get_aladhan_data(region, district=None):
+    """Fallback function to get data from aladhan.com"""
+    try:
+        # Mapping for better city search on Aladhan
+        ALADHAN_CITIES = {
+            "Toshkent": "Tashkent",
+            "Andijon": "Andijan",
+            "Farg'ona": "Fergana",
+            "Namangan": "Namangan",
+            "Samarqand": "Samarkand",
+            "Buxoro": "Bukhara",
+            "Navoiy": "Navoi",
+            "Xorazm": "Urgench",
+            "Qashqadaryo": "Qarshi",
+            "Surxondaryo": "Termiz",
+            "Jizzax": "Jizzakh",
+            "Sirdaryo": "Guliston",
+            "Nukus (Qoraqalpog'iston Res)": "Nukus"
+        }
+        
+        city = district if district else region
+        # If the district name is known to be slightly different or specific, adjust it
+        if city in ALADHAN_CITIES:
+            city = ALADHAN_CITIES[city]
+        elif region in ALADHAN_CITIES:
+             pass # Use district as is, but country is Uzbekistan
+        
+        # Method 3: Muslim World League
+        # School 1: Hanafi
+        url = f"http://api.aladhan.com/v1/timingsByCity?city={city}&country=Uzbekistan&method=3&school=1"
+        response = requests.get(url, timeout=(5, 10))
+        
+        if response.status_code == 200:
+            res_data = response.json()
+            if res_data.get("code") == 200:
+                timings = res_data["data"]["timings"]
+                date_info = res_data["data"]["date"]
+                
+                # Convert to islomapi format
+                data = {
+                    "region": region,
+                    "date": date_info["gregorian"]["date"],
+                    "weekday": date_info["gregorian"]["weekday"]["en"], # Aladhan provides English weekdays
+                    "times": {
+                        "tong_saharlik": timings["Fajr"],
+                        "quyosh": timings["Sunrise"],
+                        "peshin": timings["Dhuhr"],
+                        "asr": timings["Asr"],
+                        "shom_iftor": timings["Maghrib"],
+                        "hufton": timings["Isha"]
+                    }
+                }
+                
+                # Weekday mapping to Uzbek
+                WEEKDAY_MAP = {
+                    "Monday": "Dushanba",
+                    "Tuesday": "Seshanba",
+                    "Wednesday": "Chorshanba",
+                    "Thursday": "Payshanba",
+                    "Friday": "Juma",
+                    "Saturday": "Shanba",
+                    "Sunday": "Yakshanba"
+                }
+                data["weekday"] = WEEKDAY_MAP.get(data["weekday"], data["weekday"])
+                
+                return data
+        
+        logger.error(f"Aladhan fallback also failed for {city}")
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error in aladhan fallback for {region}: {str(e)}")
         return None
 
 

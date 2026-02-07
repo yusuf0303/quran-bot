@@ -114,6 +114,22 @@ def get_leaderboard(limit=10):
     conn.close()
     return leaders
 
+def get_leaderboard_page(limit=10, offset=0):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT full_name, points FROM contest_users ORDER BY points DESC LIMIT ? OFFSET ?", (limit, offset))
+    leaders = cursor.fetchall()
+    conn.close()
+    return leaders
+
+def get_total_contest_users():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM contest_users")
+    count = cursor.fetchone()[0]
+    conn.close()
+    return count
+
 def is_quiz_rewarded(user_id, quiz_id):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()

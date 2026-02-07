@@ -1,6 +1,9 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CallbackContext
-from Ramadan.database import register_contest_user, get_contest_user, add_points, verify_referral, get_leaderboard
+from Ramadan.database import (
+    register_contest_user, get_contest_user, add_points, 
+    verify_referral, get_leaderboard, get_leaderboard_page, get_total_contest_users
+)
 from Ramadan.hududlar import REGIONS
 
 # Kanallar ro'yxati (Konkursda qatnashish uchun majburiy)
@@ -52,16 +55,21 @@ def get_konkurs_status(user_id, bot_username):
     )
     return status_text
 
-def get_leaderboard_text():
-    leaders = get_leaderboard(10)
+def get_leaderboard_text(page=1, limit=10, total=0):
+    offset = (page - 1) * limit
+    leaders = get_leaderboard_page(limit, offset)
+    
     if not leaders:
         return "🏆 **Reyting jadvali hali bo'sh.**\nBallar yig'ishni hoziroq boshlang!"
     
-    text = "🏆 **Ramazon Konkursi - Kuchli 10 talik:**\n\n"
-    for i, (name, points) in enumerate(leaders, 1):
+    text = f"🏆 **Ramazon Konkursi - Reyting:**\n"
+    text += f"📊 Jami ishtirokchilar: {total} ta\n\n"
+    
+    for i, (name, points) in enumerate(leaders, offset + 1):
         safe_name = escape_markdown(name)
         medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else "👤"
         text += f"{i}. {medal} **{safe_name}** — {points} ball\n"
     
-    text += "\nOlg'a! Siz ham g'olib bo'lishingiz mumkin! 🚀"
+    text += f"\n📄 Sahifa: {page} / {(total + limit - 1) // limit}"
+    text += "\n\nOlg'a! Siz ham g'olib bo'lishingiz mumkin! 🚀"
     return text

@@ -52,8 +52,31 @@ def konkurs_command(update: Update, context: CallbackContext):
 def leaderboard_callback(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
-    text = get_leaderboard_text()
-    keyboard = [[InlineKeyboardButton("⬅️ Orqaga", callback_data="ramadan_back_to_status")]]
+    
+    # Extract page from data: ramadan_leaderboard_PAGE
+    data = query.data
+    page = 1
+    if "_" in data and data.split("_")[-1].isdigit():
+        page = int(data.split("_")[-1])
+    
+    from Ramadan.database import get_total_contest_users
+    total = get_total_contest_users()
+    limit = 10
+    total_pages = (total + limit - 1) // limit
+    
+    text = get_leaderboard_text(page=page, limit=limit, total=total)
+    
+    keyboard = []
+    nav_row = []
+    if page > 1:
+        nav_row.append(InlineKeyboardButton("⬅️ Oldingi", callback_data=f"ramadan_leaderboard_{page-1}"))
+    if page < total_pages:
+        nav_row.append(InlineKeyboardButton("Keyingi ➡️", callback_data=f"ramadan_leaderboard_{page+1}"))
+    
+    if nav_row:
+        keyboard.append(nav_row)
+        
+    keyboard.append([InlineKeyboardButton("⬅️ Orqaga", callback_data="ramadan_back_to_status")])
     query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode=ParseMode.MARKDOWN)
 
 def set_region_callback(update: Update, context: CallbackContext):

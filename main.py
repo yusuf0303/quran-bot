@@ -192,7 +192,7 @@ def main():
     dp.add_handler(MessageHandler(Filters.regex("^Konkurs 🏆$"), wrapped_handler(konkurs_command)))
     
     # Ramadan Callbacks (Wrapped)
-    dp.add_handler(CallbackQueryHandler(wrapped_handler(leaderboard_callback), pattern="^ramadan_leaderboard$"))
+    dp.add_handler(CallbackQueryHandler(wrapped_handler(leaderboard_callback), pattern=r"^ramadan_leaderboard(_\d+)?$"))
     dp.add_handler(CallbackQueryHandler(wrapped_handler(set_region_callback), pattern="^ramadan_set_region$"))
     dp.add_handler(CallbackQueryHandler(wrapped_handler(save_region_callback), pattern="^ramadan_save_reg_"))
     dp.add_handler(CallbackQueryHandler(wrapped_handler(insta_verify_callback), pattern="^ramadan_insta_verify$"))
