@@ -16,7 +16,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 from Quiz.quiz_creator import setup_quiz_handlers, handle_poll_answer
 from Suralar.button_handler import button_handler
 from Ramadan.handlers import konkurs_command, leaderboard_callback, reyting_command, set_region_callback, save_region_callback, insta_verify_callback, ramadan_back_callback, juma_test_command
-from Admin.stats import admin_stats_command, admin_users_callback, admin_back_stats_callback
+from Admin.stats import admin_stats_command, admin_users_callback, admin_back_stats_callback, admin_region_stats_callback
 from namoz_vaqtlari.scheduler import start_prayer_scheduler
 from Ramadan.database import add_referral
 from Ramadan.contest_logic import get_leaderboard_text
@@ -207,6 +207,7 @@ def main():
     
     # Admin Callbacks
     dp.add_handler(CallbackQueryHandler(admin_users_callback, pattern=r"^admin_users_\d+$"))
+    dp.add_handler(CallbackQueryHandler(admin_region_stats_callback, pattern="^admin_region_stats$"))
     dp.add_handler(CallbackQueryHandler(admin_back_stats_callback, pattern="^admin_back_stats$"))
     
     # Friday Test Start Callback

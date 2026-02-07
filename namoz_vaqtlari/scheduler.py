@@ -9,6 +9,7 @@ import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 from namoz_vaqtlari.get_regeions import API_REGION_NAMES
+from namoz_vaqtlari.time_namoz import get_data
 
 logger = logging.getLogger(__name__)
 
@@ -25,14 +26,12 @@ def fetch_all_prayer_times():
     logger.info("Fetching prayer times for all regions...")
     for display_name, api_name in API_REGION_NAMES.items():
         try:
-            url = f"https://islomapi.uz/api/present/day?region={api_name}"
-            response = requests.get(url, timeout=10)
-            if response.status_code == 200:
-                data = response.json()
-                if 'times' in data:
-                    new_cache[display_name] = data['times']
+            # Use the robust get_data from time_namoz which has fallbacks
+            data = get_data(display_name)
+            if data and 'times' in data:
+                new_cache[display_name] = data['times']
             else:
-                logger.error(f"Failed to fetch prayer times for {display_name}: {response.status_code}")
+                logger.error(f"Failed to fetch prayer times for {display_name} even with fallbacks")
         except Exception as e:
             logger.error(f"Error fetching prayer times for {display_name}: {e}")
     

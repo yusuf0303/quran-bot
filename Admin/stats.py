@@ -47,6 +47,27 @@ def get_stats_data():
     conn.close()
     return stats
 
+def get_region_stats():
+    conn = sqlite3.connect(RAMADAN_DB)
+    cursor = conn.cursor()
+    
+    # Count users by region
+    cursor.execute("""
+        SELECT region, COUNT(*) as count 
+        FROM contest_users 
+        GROUP BY region 
+        ORDER BY count DESC
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+    
+    region_stats = []
+    for region, count in rows:
+        region_name = region if region else "Tanlanmagan ❓"
+        region_stats.append((region_name, count))
+    
+    return region_stats
+
 def admin_stats_command(update: Update, context: CallbackContext):
     admin_id = int(os.getenv("ADMIN_ID", 0))
     if update.effective_user.id != admin_id:
@@ -63,7 +84,10 @@ def admin_stats_command(update: Update, context: CallbackContext):
         f"📅 Oxirgi oyda: <code>{stats['month']}</code>\n"
     )
     
-    keyboard = [[InlineKeyboardButton("👥 Foydalanuvchilar ro'yxati", callback_data="admin_users_1")]]
+    keyboard = [
+        [InlineKeyboardButton("👥 Foydalanuvchilar ro'yxati", callback_data="admin_users_1")],
+        [InlineKeyboardButton("🗺 Hududlar bo'yicha", callback_data="admin_region_stats")]
+    ]
     
     if update.callback_query:
         update.callback_query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode=ParseMode.HTML)
@@ -142,6 +166,36 @@ def admin_users_callback(update: Update, context: CallbackContext):
         keyboard.append(nav_row)
         
     keyboard.append([InlineKeyboardButton("⬆️ Statistikaga qaytish", callback_data="admin_back_stats")])
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    if query:
+        query.edit_message_text(text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
+    else:
+        update.message.reply_text(text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
+
+def admin_region_stats_callback(update: Update, context: CallbackContext):
+    query = update.callback_query
+    admin_id = int(os.getenv("ADMIN_ID", 0))
+    if update.effective_user.id != admin_id:
+        if query: query.answer("Ruxsat berilmagan")
+        return
+    
+    if query: query.answer()
+    
+    region_stats = get_region_stats()
+    total_with_region = sum(count for _, count in region_stats if _ != "Tanlanmagan ❓")
+    
+    text = "🗺 <b>Hududlar bo'yicha statistika</b>\n\n"
+    
+    if not region_stats:
+        text += "Ma'lumotlar topilmadi."
+    else:
+        for region, count in region_stats:
+            text += f"📍 {region}: <code>{count}</code>\n"
+        
+        text += f"\n📊 Hudud tanlaganlar: <code>{total_with_region}</code>"
+
+    keyboard = [[InlineKeyboardButton("⬆️ Statistikaga qaytish", callback_data="admin_back_stats")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     if query:
