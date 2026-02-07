@@ -14,6 +14,7 @@ from SURAH_MAPPING import SURAH_MAP
 import json
 import re
 from transliteration import normalize_query
+from namoz_vaqtlari.time_namoz import get_data
 
 # Load Quran translation data
 try:
@@ -144,6 +145,57 @@ def inline_query_handler(update, context):
                 ])
             )
         )
+        update.inline_query.answer(results, cache_time=1)
+        return
+
+    if query.startswith("namoz_"):
+        parts = query.split("_")
+        region = parts[1] if len(parts) >= 2 else "Toshkent"
+        district = parts[2] if len(parts) >= 3 else None
+        
+        data = get_data(region, district)
+        if data and 'times' in data:
+            location = f"{district}, {region}" if district else region
+            text = (
+                f"🕋 <b>{location} uchun namoz vaqtlari</b>\n"
+                f"📅 Sana: {data.get('date', '-')} ({data.get('weekday', '-')})\n\n"
+                f"🏙 Bomdod: <code>{data['times']['tong_saharlik']}</code>\n"
+                f"🌅 Quyosh: <code>{data['times']['quyosh']}</code>\n"
+                f"☀️ Peshin: <code>{data['times']['peshin']}</code>\n"
+                f"🌇 Asr: <code>{data['times']['asr']}</code>\n"
+                f"🌆 Shom: <code>{data['times']['shom_iftor']}</code>\n"
+                f"🌃 Xufton: <code>{data['times']['hufton']}</code>\n\n"
+                f"@KalomUzBot"
+            )
+            
+            results.append(
+                InlineQueryResultArticle(
+                    id=uuid4().hex,
+                    title=f"Namoz vaqtlari: {location}",
+                    description=f"Bomdod: {data['times']['tong_saharlik']} | Shom: {data['times']['shom_iftor']}",
+                    input_message_content=InputTextMessageContent(
+                        message_text=text,
+                        parse_mode="HTML"
+                    ),
+                    thumb_url="https://cdn-icons-png.flaticon.com/512/2662/2662250.png",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("🏆 Konkursda qatnashish", url=f"https://t.me/{context.bot.username}?start=ref")]
+                    ])
+                )
+            )
+        else:
+            results.append(
+                InlineQueryResultArticle(
+                    id=uuid4().hex,
+                    title="❌ Ma'lumot topilmadi",
+                    description=f"{region} hududi uchun ma'lumot yuklab bo'lmadi.",
+                    input_message_content=InputTextMessageContent(
+                        message_text=f"⚠️ <b>{region}</b> hududi uchun namoz vaqtlari ma'lumotlarini yuklab olishda xatolik yuz berdi.",
+                        parse_mode="HTML"
+                    )
+                )
+            )
+            
         update.inline_query.answer(results, cache_time=1)
         return
 

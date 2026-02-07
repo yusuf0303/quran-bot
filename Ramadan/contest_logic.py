@@ -56,6 +56,9 @@ def get_konkurs_status(user_id, bot_username):
     return status_text
 
 def get_leaderboard_text(page=1, limit=10, total=0):
+    if total == 0:
+        total = get_total_contest_users()
+        
     offset = (page - 1) * limit
     leaders = get_leaderboard_page(limit, offset)
     

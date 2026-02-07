@@ -61,8 +61,13 @@ def leaderboard_callback(update: Update, context: CallbackContext):
     
     from Ramadan.database import get_total_contest_users
     total = get_total_contest_users()
+    if total == 0:
+        # Fallback in case total count is weird but we have leaders
+        leaders = get_leaderboard_page(10, 0)
+        total = len(leaders) if leaders else 0
+        
     limit = 10
-    total_pages = (total + limit - 1) // limit
+    total_pages = max(1, (total + limit - 1) // limit)
     
     text = get_leaderboard_text(page=page, limit=limit, total=total)
     
