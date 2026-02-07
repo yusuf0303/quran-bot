@@ -177,10 +177,7 @@ def inline_query_handler(update, context):
                         message_text=text,
                         parse_mode="HTML"
                     ),
-                    thumb_url="https://cdn-icons-png.flaticon.com/512/2662/2662250.png",
-                    reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("🏆 Konkursda qatnashish", url=f"https://t.me/{context.bot.username}?start=ref")]
-                    ])
+                    thumb_url="https://cdn-icons-png.flaticon.com/512/2662/2662250.png"
                 )
             )
         else:
