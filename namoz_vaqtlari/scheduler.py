@@ -41,7 +41,8 @@ def fetch_all_prayer_times():
 
 def check_and_send_prayer_reminders(bot):
     """Check every minute if any prayer is in 15 minutes and send reminders"""
-    now = datetime.now()
+    tashkent_tz = pytz.timezone('Asia/Tashkent')
+    now = datetime.now(tashkent_tz)
     target_time = (now + timedelta(minutes=15)).strftime("%H:%M")
     
     # Prayer keys to check
