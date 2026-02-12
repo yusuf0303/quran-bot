@@ -180,7 +180,9 @@ def juma_test_command(update: Update, context: CallbackContext):
     from Ramadan.quiz_integration import send_friday_quiz_notification
     from datetime import datetime
     
-    now = datetime.now()
+    import pytz
+    tashkent_tz = pytz.timezone('Asia/Tashkent')
+    now = datetime.now(tashkent_tz)
     # Debugging: Allow Friday (4)
     if now.weekday() not in [4]:
         update.message.reply_text("⚠️ **Bugun juma emas!**\n\nJuma testi faqat juma kunlari bo'lib o'tadi. Iltimos, juma kunini kuting!", parse_mode=ParseMode.MARKDOWN)

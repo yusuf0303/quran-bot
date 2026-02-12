@@ -100,7 +100,9 @@ def handle_friday_test_start(update: Update, context: CallbackContext):
             
         logger.info(f"handle_friday_test_start triggered by user {update.effective_user.id}")
 
-        now = datetime.now()
+        import pytz
+        tashkent_tz = pytz.timezone('Asia/Tashkent')
+        now = datetime.now(tashkent_tz)
         # Debugging: Allow Friday (4)    
         if now.weekday() not in [4]:
              logger.info("Not Friday, showing alert.")
