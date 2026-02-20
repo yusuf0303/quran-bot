@@ -2,6 +2,7 @@ import requests
 from telegram import (
     InlineQueryResultArticle,
     InlineQueryResultAudio,
+    InlineQueryResultCachedPhoto,
     InputTextMessageContent,
     InlineKeyboardMarkup,
     InlineKeyboardButton
@@ -157,9 +158,19 @@ def inline_query_handler(update, context):
         if data and 'times' in data:
             location = f"{district}, {region}" if district else region
             text = (
-                f"🕋 <b>{location} uchun namoz vaqtlari</b>\n"
-                f"📅 Sana: {data.get('date', '-')} ({data.get('weekday', '-')})\n\n"
-                f"🏙 Bomdod: <code>{data['times']['tong_saharlik']}</code>\n"
+                f"🕋 <b>{location.upper()} uchun namoz vaqtlari</b>\n"
+                f"📅 Sana: {data.get('date', '-')} ({data.get('weekday', '-')})\n"
+            )
+            
+            if 'hijri' in data:
+                h = data['hijri']
+                text += f"🌙 Hijriy: {h['day']}-{h['month']}, {h['year']}-yil\n"
+            
+            if data.get('holidays'):
+                text += f"🎊 Bayram: {', '.join(data['holidays'])}\n"
+                
+            text += (
+                f"\n🏙 Bomdod: <code>{data['times']['tong_saharlik']}</code>\n"
                 f"🌅 Quyosh: <code>{data['times']['quyosh']}</code>\n"
                 f"☀️ Peshin: <code>{data['times']['peshin']}</code>\n"
                 f"🌇 Asr: <code>{data['times']['asr']}</code>\n"
@@ -168,16 +179,20 @@ def inline_query_handler(update, context):
                 f"@KalomUzBot"
             )
             
+            # File ID for namoz_vaqtlari/prayer_times.png
+            PRAYER_IMAGE_FILE_ID = "AgACAgIAAxkDAAINSGmYu2ytvF_ZmxMUOg5kcCbENVVhAAKgFGsb0D3JSI1RfvK51NcUAQADAgADdwADOgQ"
+            
             results.append(
-                InlineQueryResultArticle(
+                InlineQueryResultCachedPhoto(
                     id=uuid4().hex,
+                    photo_file_id=PRAYER_IMAGE_FILE_ID,
                     title=f"Namoz vaqtlari: {location}",
                     description=f"Bomdod: {data['times']['tong_saharlik']} | Shom: {data['times']['shom_iftor']}",
-                    input_message_content=InputTextMessageContent(
-                        message_text=text,
-                        parse_mode="HTML"
-                    ),
-                    thumb_url="https://cdn-icons-png.flaticon.com/512/2662/2662250.png"
+                    caption=text,
+                    parse_mode="HTML",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("🏁 Botga o'tish", url=f"https://t.me/{context.bot.username}?start=namoz_vaqtlari")]
+                    ])
                 )
             )
         else:

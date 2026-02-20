@@ -1,4 +1,5 @@
 import logging
+import os
 
 import requests
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
@@ -135,13 +136,25 @@ def format_prayer_time(update: Update, context: CallbackContext, prayer_key: str
             f"{FOOTER_LINKS}"
         )
 
-        update.message.reply_text(
-            text=text,
-            parse_mode="HTML",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🚀 Ulashish", switch_inline_query=f"namoz_{region}_{district if district else ''}")]
-            ])
-        )
+        image_path = os.path.join(os.path.dirname(__file__), "prayer_times.png")
+        if os.path.exists(image_path):
+            with open(image_path, 'rb') as photo:
+                update.message.reply_photo(
+                    photo=photo,
+                    caption=text,
+                    parse_mode="HTML",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("🚀 Ulashish", switch_inline_query=f"namoz_{region}_{district if district else ''}")]
+                    ])
+                )
+        else:
+            update.message.reply_text(
+                text=text,
+                parse_mode="HTML",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🚀 Ulashish", switch_inline_query=f"namoz_{region}_{district if district else ''}")]
+                ])
+            )
         # Also show the navigation menu if it's not there, but it should be already
 
     except Exception as e:
@@ -217,13 +230,25 @@ def format_daily_prayers(update: Update, context: CallbackContext):
             f"{FOOTER_LINKS}"
         )
 
-        update.message.reply_text(
-            text=text,
-            parse_mode="HTML",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🚀 Ulashish", switch_inline_query=f"namoz_{region}_{district if district else ''}")]
-            ])
-        )
+        image_path = os.path.join(os.path.dirname(__file__), "prayer_times.png")
+        if os.path.exists(image_path):
+            with open(image_path, 'rb') as photo:
+                update.message.reply_photo(
+                    photo=photo,
+                    caption=text,
+                    parse_mode="HTML",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("🚀 Ulashish", switch_inline_query=f"namoz_{region}_{district if district else ''}")]
+                    ])
+                )
+        else:
+            update.message.reply_text(
+                text=text,
+                parse_mode="HTML",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🚀 Ulashish", switch_inline_query=f"namoz_{region}_{district if district else ''}")]
+                ])
+            )
 
     except Exception as e:
         logging.error(f"format_daily_prayers xatolik: {e}")

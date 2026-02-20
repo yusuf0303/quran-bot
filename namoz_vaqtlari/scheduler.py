@@ -41,6 +41,20 @@ def fetch_all_prayer_times():
     else:
         logger.error("DANGER: Prayer cache is empty after fetch!")
 
+SAHARLIK_DUO = """
+<b>Saharlik (og'iz yopish) duosi:</b>
+<i>Navaytu an asuma sovma shahri romazona minal fajri ilal mag'ribi, xolisan lillahi ta'ala. Allohu akbar.</i>
+
+<b>Ma'nosi:</b> Ramazon oyining ro'zasini subhdan to kun botgungacha tutmoqni niyat qildim, Xolis Alloh uchun. Alloh buyukdir.
+"""
+
+IFTORLIK_DUO = """
+<b>Iftorlik (og'iz ochish) duosi:</b>
+<i>Allohumma laka sumtu va bika aamantu va a'layka tavakkaltu va a'laa rizqika aftartu, fag'firliy ya g'offaruma qoddamtu va maa axxortu</i>
+
+<b>Ma'nosi:</b> Ey alloh, ushbu ro'zamni Sen uchun tutdim va Senga iymon keltirdim va senga tavakkal qildim, bergan rizqing bilan iftor qildim. Ey gunohlarimni afv qiluvchi zot, mening avvalgi va keyingi gunohlarimni mag'firat qilgil.
+"""
+
 def check_and_send_prayer_reminders(bot):
     """Check every minute if any prayer is in 15 minutes and send reminders"""
     tashkent_tz = pytz.timezone('Asia/Tashkent')
@@ -93,7 +107,6 @@ def check_and_send_prayer_reminders(bot):
         region_to_check = user_region if user_region else "Toshkent"
         
         # In case the user_region is not in our display_name keys (e.g. "Nukus")
-        # Ensure consistency with API_REGION_NAMES keys
         if region_to_check == "Nukus": region_to_check = "Nukus (Qoraqalpog'iston Res)"
         
         for prayer_name, regions in reminders_to_send.items():
@@ -101,6 +114,12 @@ def check_and_send_prayer_reminders(bot):
                 try:
                     text = f"⏳ <b>{prayer_name}</b> vaqtiga 15 daqiqa qoldi.\n📍 Hudud: <b>{region_to_check}</b>"
                     
+                    # Add Suhoor/Iftar prayers during Ramazan
+                    if prayer_name == "Bomdod (Saharlik)":
+                        text += f"\n\n{SAHARLIK_DUO}"
+                    elif prayer_name == "Shom (Iftor)":
+                        text += f"\n\n{IFTORLIK_DUO}"
+
                     keyboard = None
                     if not user_region:
                         text += "\n\n⚠️ Siz hali hudud tanlamagansiz, shuning uchun Toshkent vaqti ko'rsatilmoqda. Hududni tanlash uchun pastdagi tugmani bosing."
