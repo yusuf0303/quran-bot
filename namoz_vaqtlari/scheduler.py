@@ -37,7 +37,9 @@ def fetch_all_prayer_times():
     
     if new_cache:
         prayer_cache = new_cache
-        logger.info(f"Prayer times cached for {len(prayer_cache)} regions")
+        logger.info(f"Prayer times cached for {len(prayer_cache)} regions: {list(prayer_cache.keys())}")
+    else:
+        logger.error("DANGER: Prayer cache is empty after fetch!")
 
 def check_and_send_prayer_reminders(bot):
     """Check every minute if any prayer is in 15 minutes and send reminders"""

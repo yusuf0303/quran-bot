@@ -22,10 +22,7 @@ PRAYER_TIMES = [
 ]
 
 FOOTER_LINKS = ("""
-📢 <a href='https://t.me/KalomUz_News'>Telegram</a>|
-🛠 <a href='https://t.me/KalomUzSupportBot'>Support</a> |  
-📸 <a href='https://www.instagram.com/kalomuz/?utm_source=ig_web_button_share_sheet'>Instagram</a>
-
+    <a href='https://t.me/KalomUz_News'>Telegram</a> | <a href='https://www.instagram.com/kalomuz/?utm_source=ig_web_button_share_sheet'>Instagram</a>
 """
                 )
 
@@ -123,9 +120,18 @@ def format_prayer_time(update: Update, context: CallbackContext, prayer_key: str
         text = (
             f"{emoji} <b>{prayer_name} vaqti</b>\n\n"
             f"{region_emoji} <b>Hudud:</b> {location}\n"
-            f"📅 <b>Sana:</b> {data.get('date', 'Noma’lum')} ({data.get('weekday', '-')})\n\n"
-            f"⏰ <b>Vaqt:</b> <code>{data['times'][prayer_key]}</code>\n\n"
-            # f"{get_time_remaining(data['times'][prayer_key])}"
+            f"📅 <b>Sana:</b> {data.get('date', 'Noma’lum')} ({data.get('weekday', '-')})\n"
+        )
+        
+        if 'hijri' in data:
+            h = data['hijri']
+            text += f"🌙 <b>Hijriy:</b> {h['day']}-{h['month']}, {h['year']}-yil\n"
+        
+        if data.get('holidays'):
+            text += f"🎊 <b>Bayram:</b> {', '.join(data['holidays'])}\n"
+            
+        text += (
+            f"\n⏰ <b>Vaqt:</b> <code>{data['times'][prayer_key]}</code>\n\n"
             f"{FOOTER_LINKS}"
         )
 
@@ -191,13 +197,23 @@ def format_daily_prayers(update: Update, context: CallbackContext):
 
         text = (
             f"<b>📍 {district.title()} tumani uchun namoz vaqtlari:</b>\n"
-            f"<i>🗓 {data['date']} ({data['weekday']})</i>\n\n"
-            f"<b>🌅 Bomdod (Saharlik):</b> {data['times']['tong_saharlik']}\n"
+            f"<i>🗓 {data['date']} ({data['weekday']})</i>\n"
+        )
+        
+        if 'hijri' in data:
+            h = data['hijri']
+            text += f"<i>🌙 {h['day']}-{h['month']}, {h['year']}-yil</i>\n"
+            
+        if data.get('holidays'):
+            text += f"🎊 <b>Bayram:</b> {', '.join(data['holidays'])}\n"
+
+        text += (
+            f"\n<b>🌅 Bomdod (Saharlik):</b> {data['times']['tong_saharlik']}\n"
             f"<b>🌞 Quyosh:</b> {data['times']['quyosh']}\n"
             f"<b>🕑 Peshin:</b> {data['times']['peshin']}\n"
             f"<b>🌇 Asr:</b> {data['times']['asr']}\n"
             f"<b>🌆 Shom (Iftor):</b> {data['times']['shom_iftor']}\n"
-            f"<b>🌃 Xufton:</b> {data['times']['hufton']}\n"
+            f"<b>🌃 Xufton:</b> {data['times']['hufton']}\n\n"
             f"{FOOTER_LINKS}"
         )
 
@@ -306,26 +322,32 @@ def go_home(update: Update, context: CallbackContext) -> int:
 
 
 def get_data(region, district=None):
-    try:
-        # Viloyat nomini API uchun formatga o'tkazamiz
-        api_region = API_REGION_NAMES.get(region, region.lower())
+    """
+    Get prayer times for a region.
+    Tries Aladhan as primary source because islomapi.uz has no 2026 data.
+    """
+    # 1. Try Aladhan first (Primary for 2026)
+    data = get_aladhan_data(region, district)
+    if data:
+        return data
 
+    # 2. Fallback to islomapi.uz (Secondary, likely 404 for 2026)
+    try:
+        api_region = API_REGION_NAMES.get(region, region.lower())
         url = f"https://islomapi.uz/api/present/day?region={api_region}"
         response = requests.get(url, timeout=(5, 10))
 
         if response.status_code == 200:
             data = response.json()
-            if data.get('success') is False or 'times' not in data:
-                logger.warning(f"islomapi.uz returned error or empty data for {region}. Trying fallback...")
-                return get_aladhan_data(region, district)
-            return data
-        else:
-            logger.warning(f"islomapi.uz failed with status {response.status_code}. Trying fallback...")
-            return get_aladhan_data(region, district)
+            if data.get('success') is not False and 'times' in data:
+                return data
+        
+        logger.warning(f"Both Aladhan and islomapi failed for {region}")
+        return None
 
     except Exception as e:
-        logger.error(f"Error getting data for {region} from islomapi.uz: {str(e)}")
-        return get_aladhan_data(region, district)
+        logger.error(f"Error in fallback get_data for {region}: {str(e)}")
+        return None
 
 
 def get_aladhan_data(region, district=None):
@@ -341,7 +363,7 @@ def get_aladhan_data(region, district=None):
             "Buxoro": "Bukhara",
             "Navoiy": "Navoi",
             "Xorazm": "Urgench",
-            "Qashqadaryo": "Qarshi",
+            "Qashqadaryo": "Karshi",
             "Surxondaryo": "Termiz",
             "Jizzax": "Jizzakh",
             "Sirdaryo": "Guliston",
@@ -371,6 +393,12 @@ def get_aladhan_data(region, district=None):
                     "region": region,
                     "date": date_info["gregorian"]["date"],
                     "weekday": date_info["gregorian"]["weekday"]["en"], # Aladhan provides English weekdays
+                    "hijri": {
+                        "day": date_info["hijri"]["day"],
+                        "month": date_info["hijri"]["month"]["en"],
+                        "year": date_info["hijri"]["year"]
+                    },
+                    "holidays": date_info["hijri"]["holidays"],
                     "times": {
                         "tong_saharlik": timings["Fajr"],
                         "quyosh": timings["Sunrise"],
@@ -380,6 +408,23 @@ def get_aladhan_data(region, district=None):
                         "hufton": timings["Isha"]
                     }
                 }
+                
+                # Hijri month mapping to Uzbek
+                HIJRI_MONTHS_MAP = {
+                    "Muharram": "Muharram",
+                    "Safar": "Safar",
+                    "Rabi' al-awwal": "Rabi'ul avval",
+                    "Rabi' ath-thani": "Rabi'us soni",
+                    "Jumada al-ula": "Jumadal avval",
+                    "Jumada al-akhira": "Jumadas soni",
+                    "Rajab": "Rajab",
+                    "Sha'ban": "Sha'bon",
+                    "Ramadan": "Ramazon",
+                    "Shawwal": "Shavvol",
+                    "Dhu al-Qi'dah": "Zulqa'da",
+                    "Dhu al-Hijjah": "Zulhijja"
+                }
+                data["hijri"]["month"] = HIJRI_MONTHS_MAP.get(data["hijri"]["month"], data["hijri"]["month"])
                 
                 # Weekday mapping to Uzbek
                 WEEKDAY_MAP = {
