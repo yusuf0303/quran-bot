@@ -17,6 +17,10 @@ import re
 from transliteration import normalize_query
 from namoz_vaqtlari.time_namoz import get_data
 
+# Global variable for the prayer times image file_id
+# This is updated at startup in main.py to be robust across different bot tokens
+PRAYER_PHOTO_FILE_ID = "AgACAgIAAxkDAAINSGmYu2ytvF_ZmxMUOg5kcCbENVVhAAKgFGsb0D3JSI1RfvK51NcUAQADAgADdwADOgQ"
+
 # Load Quran translation data
 try:
     with open('quran_trans_uz.json', 'r', encoding='utf-8') as f:
@@ -179,13 +183,10 @@ def inline_query_handler(update, context):
                 f"@KalomUzBot"
             )
             
-            # File ID for namoz_vaqtlari/prayer_times.png
-            PRAYER_IMAGE_FILE_ID = "AgACAgIAAxkDAAINSGmYu2ytvF_ZmxMUOg5kcCbENVVhAAKgFGsb0D3JSI1RfvK51NcUAQADAgADdwADOgQ"
-            
             results.append(
                 InlineQueryResultCachedPhoto(
                     id=uuid4().hex,
-                    photo_file_id=PRAYER_IMAGE_FILE_ID,
+                    photo_file_id=PRAYER_PHOTO_FILE_ID,
                     title=f"Namoz vaqtlari: {location}",
                     description=f"Bomdod: {data['times']['tong_saharlik']} | Shom: {data['times']['shom_iftor']}",
                     caption=text,

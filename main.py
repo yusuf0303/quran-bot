@@ -224,6 +224,24 @@ def main():
     setup_prayer_times_handlers(dp) # These have internal checks or can be wrapped if they expose handlers
     setup_mosque_handlers(dp)
     
+    # Update prayer photo file_id at startup for robustness
+    try:
+        admin_id = os.getenv("ADMIN_ID")
+        if admin_id:
+            photo_path = os.path.join("namoz_vaqtlari", "prayer_times.png")
+            if os.path.exists(photo_path):
+                with open(photo_path, 'rb') as f:
+                    msg = updater.bot.send_photo(
+                        chat_id=admin_id, 
+                        photo=f, 
+                        caption="✨ Bot ishga tushdi. Namoz vaqtlari rasmi inline query uchun yangilandi."
+                    )
+                    import inline_quran
+                    inline_quran.PRAYER_PHOTO_FILE_ID = msg.photo[-1].file_id
+                    logger.info(f"Yangi PRAYER_PHOTO_FILE_ID: {inline_quran.PRAYER_PHOTO_FILE_ID}")
+    except Exception as e:
+        logger.error(f"PRAYER_PHOTO_FILE_ID yangilashda xatolik: {e}")
+    
     from admin_broadcast import setup_admin_handlers
     setup_admin_handlers(dp)
     

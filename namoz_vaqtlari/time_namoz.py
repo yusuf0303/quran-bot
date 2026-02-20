@@ -22,6 +22,20 @@ PRAYER_TIMES = [
     ["⬅️ Orqaga", "Menyuga qaytish 🔝"]
 ]
 
+SAHARLIK_DUO = """
+<b>Saharlik (og'iz yopish) duosi:</b>
+<i>Navaytu an asuma sovma shahri romazona minal fajri ilal mag'ribi, xolisan lillahi ta'ala. Allohu akbar.</i>
+
+<b>Ma'nosi:</b> Ramazon oyining ro'zasini subhdan to kun botgungacha tutmoqni niyat qildim, Xolis Alloh uchun. Alloh buyukdir.
+"""
+
+IFTORLIK_DUO = """
+<b>Iftorlik (og'iz ochish) duosi:</b>
+<i>Allohumma laka sumtu va bika aamantu va a'layka tavakkaltu va a'laa rizqika aftartu, fag'firliy ya g'offaruma qoddamtu va maa axxortu</i>
+
+<b>Ma'nosi:</b> Ey alloh, ushbu ro'zamni Sen uchun tutdim va Senga iymon keltirdim va senga tavakkal qildim, bergan rizqing bilan iftor qildim. Ey gunohlarimni afv qiluvchi zot, mening avvalgi va keyingi gunohlarimni mag'firat qilgil.
+"""
+
 FOOTER_LINKS = ("""
     <a href='https://t.me/KalomUz_News'>Telegram</a> | <a href='https://www.instagram.com/kalomuz/?utm_source=ig_web_button_share_sheet'>Instagram</a>
 """
@@ -132,9 +146,15 @@ def format_prayer_time(update: Update, context: CallbackContext, prayer_key: str
             text += f"🎊 <b>Bayram:</b> {', '.join(data['holidays'])}\n"
             
         text += (
-            f"\n⏰ <b>Vaqt:</b> <code>{data['times'][prayer_key]}</code>\n\n"
-            f"{FOOTER_LINKS}"
+            f"\n⏰ <b>Vaqt:</b> <code>{data['times'][prayer_key]}</code>\n"
         )
+        
+        if "Bomdod" in prayer_name:
+            text += f"\n{SAHARLIK_DUO}"
+        elif "Shom" in prayer_name:
+            text += f"\n{IFTORLIK_DUO}"
+            
+        text += f"\n{FOOTER_LINKS}"
 
         image_path = os.path.join(os.path.dirname(__file__), "prayer_times.png")
         if os.path.exists(image_path):

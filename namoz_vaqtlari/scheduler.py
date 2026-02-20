@@ -9,7 +9,7 @@ import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 from namoz_vaqtlari.get_regeions import API_REGION_NAMES
-from namoz_vaqtlari.time_namoz import get_data
+from namoz_vaqtlari.time_namoz import get_data, SAHARLIK_DUO, IFTORLIK_DUO
 
 logger = logging.getLogger(__name__)
 
@@ -40,20 +40,6 @@ def fetch_all_prayer_times():
         logger.info(f"Prayer times cached for {len(prayer_cache)} regions: {list(prayer_cache.keys())}")
     else:
         logger.error("DANGER: Prayer cache is empty after fetch!")
-
-SAHARLIK_DUO = """
-<b>Saharlik (og'iz yopish) duosi:</b>
-<i>Navaytu an asuma sovma shahri romazona minal fajri ilal mag'ribi, xolisan lillahi ta'ala. Allohu akbar.</i>
-
-<b>Ma'nosi:</b> Ramazon oyining ro'zasini subhdan to kun botgungacha tutmoqni niyat qildim, Xolis Alloh uchun. Alloh buyukdir.
-"""
-
-IFTORLIK_DUO = """
-<b>Iftorlik (og'iz ochish) duosi:</b>
-<i>Allohumma laka sumtu va bika aamantu va a'layka tavakkaltu va a'laa rizqika aftartu, fag'firliy ya g'offaruma qoddamtu va maa axxortu</i>
-
-<b>Ma'nosi:</b> Ey alloh, ushbu ro'zamni Sen uchun tutdim va Senga iymon keltirdim va senga tavakkal qildim, bergan rizqing bilan iftor qildim. Ey gunohlarimni afv qiluvchi zot, mening avvalgi va keyingi gunohlarimni mag'firat qilgil.
-"""
 
 def check_and_send_prayer_reminders(bot):
     """Check every minute if any prayer is in 15 minutes and send reminders"""
