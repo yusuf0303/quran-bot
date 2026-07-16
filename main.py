@@ -36,7 +36,6 @@ def start_bot(update, context):
     
     commands = [
         BotCommand(command='start', description="Botni ishga tushirish"),
-        BotCommand(command='konkurs', description="Ramazon konkursi (Dashboard)"),
         BotCommand(command='reyting', description="Umumiy peshqadamlar ro'yxati"),
         BotCommand(command='hudud', description="Saharlik/Iftor vaqtini belgilash"),
         BotCommand(command='juma_test', description="Juma testi (Haftalik)"),

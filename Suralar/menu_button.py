@@ -15,7 +15,7 @@ def main_buttons(user_id=None):
         [KeyboardButton("Eng yaqin Masjid 📍", request_location=True)],
         ["Suralar 🔍", "Oyatlarni toping 🔍"],
         ["Masjidlar 🕌", "Namoz vaqtlari 🧎‍♂️"],
-        ["Quiz yaratish 📝", "Konkurs 🏆"]
+        ["Quiz yaratish 📝"]
     ]
     
     admin_id = int(os.getenv("ADMIN_ID", 0))
